@@ -1,0 +1,1981 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#6C5CE7">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Budżet">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-192.png">
+<title>Budżet</title>
+<style>
+:root{
+  --bg:#f4f5fa;--card:#ffffff;--text:#1b1d2a;--muted:#7f859c;--line:#e8eaf2;--track:#eceef6;
+  --accent:#6C5CE7;--accent2:#a29bfe;--ok:#00b894;--warn:#f39c12;--bad:#e74c3c;
+  --shadow:0 6px 24px rgba(30,30,60,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--bg:#0f1117;--card:#181b25;--text:#f1f2f7;--muted:#8a90a6;--line:#262a38;--track:#232736;--shadow:0 6px 24px rgba(0,0,0,.38)}
+}
+:root[data-theme="dark"]{--bg:#0f1117;--card:#181b25;--text:#f1f2f7;--muted:#8a90a6;--line:#262a38;--track:#232736;--shadow:0 6px 24px rgba(0,0,0,.38)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior-y:none}
+body{min-height:100vh;padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;text-align:inherit;padding:0}
+input,textarea,select{font:inherit;color:var(--text)}
+#app{max-width:560px;margin:0 auto;padding:0 16px}
+
+/* Top bar */
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:calc(14px + env(safe-area-inset-top)) 0 12px}
+.top-l{display:flex;align-items:center;gap:8px;min-width:0}
+.top h1{font-size:22px;margin:0;font-weight:800;letter-spacing:-.3px;white-space:nowrap}
+.sync-pill{font-size:11px;font-weight:700;padding:4px 8px;border-radius:99px;background:var(--card);color:var(--muted);box-shadow:var(--shadow);display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.sync-pill.ok{color:var(--ok)}
+.sync-pill.warn{color:var(--warn)}
+.sync-pill.bad{color:var(--bad)}
+.msw{display:flex;align-items:center;gap:2px;background:var(--card);border-radius:999px;box-shadow:var(--shadow);padding:3px;flex:none}
+.msw button{width:30px;height:30px;border-radius:50%;font-size:18px;color:var(--muted);display:grid;place-items:center}
+.msw span{min-width:96px;text-align:center;font-weight:700;font-size:13px;padding:0 4px}
+.msw.yr span{min-width:56px}
+
+/* Pills */
+.pills{display:flex;gap:7px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.pills::-webkit-scrollbar{display:none}
+.pill{flex:none;padding:8px 13px;border-radius:99px;background:var(--card);color:var(--muted);font-size:13px;font-weight:700;box-shadow:var(--shadow);border:2px solid transparent;transition:.2s}
+.pill.on{background:color-mix(in srgb,var(--accent) 14%,var(--card));color:var(--accent);border-color:var(--accent)}
+
+/* Cards & Hero */
+.card{background:var(--card);border-radius:22px;box-shadow:var(--shadow);padding:16px;margin-bottom:12px}
+.hero{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-radius:26px;padding:20px;margin-bottom:12px;box-shadow:0 14px 34px color-mix(in srgb,var(--accent) 34%,transparent);transition:background .3s}
+.hero.over{background:linear-gradient(135deg,#e74c3c,#c0392b);box-shadow:0 14px 34px rgba(231,76,60,.36)}
+.hero .lbl{opacity:.92;font-size:12.5px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hero .big{font-size:36px;font-weight:800;letter-spacing:-1px;margin:4px 0 12px}
+.hbar{height:9px;background:rgba(255,255,255,.28);border-radius:99px;overflow:hidden}
+.hbar i{display:block;height:100%;background:#fff;border-radius:99px;transition:width .4s}
+.hrow{display:flex;justify-content:space-between;margin-top:12px;font-size:12.5px;gap:8px}
+.hrow b{display:block;font-size:15px;margin-top:1px}
+.hrow .r{text-align:right}
+.hsub{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.22);font-size:12px;opacity:.95;display:flex;justify-content:space-between;align-items:center;gap:8px}
+
+/* Quick buttons & sections */
+.qbtns{display:flex;gap:8px;margin-bottom:12px}
+.qbtns .btn{flex:1;padding:11px 10px;font-size:13.5px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--accent);color:#fff;font-weight:700;padding:12px 18px;border-radius:14px;transition:opacity .15s}
+.btn:active{opacity:.82}
+.btn.ghost{background:var(--track);color:var(--text)}
+.btn.ok{background:var(--ok);color:#fff}
+.btn.bad{background:color-mix(in srgb,var(--bad) 15%,var(--card));color:var(--bad)}
+.btn.sm{padding:7px 12px;font-size:12.5px;border-radius:11px}
+.btn.full{width:100%}
+.sec{display:flex;justify-content:space-between;align-items:center;margin:18px 2px 9px}
+.sec h2{font-size:15.5px;margin:0;font-weight:800}
+.sec button{color:var(--accent);font-weight:700;font-size:13px}
+.hint{font-size:12.5px;color:var(--muted);line-height:1.45}
+
+/* Weekly grid */
+.wgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px}
+.wbox{background:var(--track);border-radius:14px;padding:9px 5px;text-align:center;border:2px solid transparent;transition:.2s}
+.wbox.cur{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--card))}
+.wbox.neg{background:color-mix(in srgb,var(--bad) 11%,var(--card))}
+.wbox.pos{background:color-mix(in srgb,var(--ok) 11%,var(--card))}
+.wbox small{display:block;font-size:10.5px;color:var(--muted);font-weight:700}
+.wbox b{display:block;font-size:12.5px;margin-top:3px;font-weight:800}
+.wbox span{display:block;font-size:10px;margin-top:2px;font-weight:700;color:var(--muted)}
+.wbox.neg b{color:var(--bad)}
+.wbox.pos b{color:var(--ok)}
+
+/* Surplus / Inbox banner */
+.banner{border-radius:18px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.banner.ok{background:color-mix(in srgb,var(--ok) 13%,var(--card));border:1.5px solid color-mix(in srgb,var(--ok) 45%,transparent)}
+.banner.accent{background:color-mix(in srgb,var(--accent) 12%,var(--card));border:1.5px solid color-mix(in srgb,var(--accent) 42%,transparent)}
+.banner .bt{font-size:13px;line-height:1.35}
+.banner .bt b{display:block;font-size:13.5px}
+
+/* Rows & bars */
+.row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line);width:100%;text-align:left}
+.row:last-child{border-bottom:0}
+.ico{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;font-size:19px;flex:none}
+.nm{flex:1;min-width:0}
+.nm b{display:block;font-size:14.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nm small{color:var(--muted);font-size:12px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:2px}
+.amt{font-weight:800;font-size:14.5px;white-space:nowrap;text-align:right}
+.bar{height:8px;background:var(--track);border-radius:99px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;border-radius:99px;transition:width .4s}
+.tag{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--track);color:var(--muted)}
+.tag.shared{background:color-mix(in srgb,var(--accent) 14%,var(--card));color:var(--accent)}
+.tag.src{background:color-mix(in srgb,var(--warn) 16%,var(--card));color:var(--warn)}
+.tag.ok{background:color-mix(in srgb,var(--ok) 15%,var(--card));color:var(--ok)}
+.day{font-size:12px;color:var(--muted);font-weight:700;margin:14px 4px 6px;text-transform:capitalize}
+.empty{text-align:center;color:var(--muted);padding:34px 18px;font-size:13.5px;line-height:1.5}
+.empty b{display:block;font-size:34px;margin-bottom:6px}
+
+/* Balance equation card */
+.eq{display:flex;flex-direction:column;gap:7px;font-size:13.5px}
+.eq-r{display:flex;justify-content:space-between;align-items:center}
+.eq-r.tot{border-top:1.5px solid var(--line);padding-top:9px;margin-top:3px;font-size:15.5px;font-weight:800}
+
+/* Charts */
+.barchart-wrap{position:relative;padding-top:10px}
+.bar-detail{background:var(--track);border-radius:14px;padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.bar-detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;font-size:12px}
+.bar-detail-grid div b{display:block;font-size:13.5px;margin-top:1px}
+.barchart{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;height:146px;align-items:end;padding-top:18px;border-bottom:1px solid var(--line);position:relative;background-image:linear-gradient(to top,var(--line) 1px,transparent 1px);background-size:100% 36px}
+.bcol{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;cursor:pointer;padding:0 1px}
+.bstack{width:100%;max-width:22px;display:flex;flex-direction:column;justify-content:flex-end;border-radius:7px 7px 3px 3px;overflow:hidden;min-height:4px;transition:.25s}
+.bcol.sel .bstack{box-shadow:0 0 0 2.5px var(--text)}
+.bprof{background:var(--ok);width:100%}
+.bbase{background:linear-gradient(180deg,var(--accent2),var(--accent));width:100%}
+.bempty{background:var(--track);height:6px;width:100%;border-radius:4px}
+.blbl{font-size:9.5px;font-weight:700;color:var(--muted);margin-top:5px}
+.bcol.sel .blbl{color:var(--accent);font-weight:800}
+
+.pie-wrap{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center}
+.pie-leg{flex:1;min-width:150px;display:flex;flex-direction:column;gap:8px}
+.pie-item{display:flex;align-items:center;gap:8px;font-size:13px}
+.pie-dot{width:11px;height:11px;border-radius:50%;flex:none}
+.pie-item b{margin-left:auto;font-size:13px;white-space:nowrap}
+
+/* Navigation */
+.nav{position:fixed;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--card) 93%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:20}
+.nav-in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 62px 1fr 1fr 1fr;align-items:center}
+.nav button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 2px;font-size:10.5px;color:var(--muted);font-weight:700}
+.nav button span{font-size:20px;filter:grayscale(.9);opacity:.72}
+.nav button.on{color:var(--accent)}
+.nav button.on span{filter:none;opacity:1}
+.nav .plus{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:30px;line-height:1;margin:-26px auto 0;box-shadow:0 10px 24px color-mix(in srgb,var(--accent) 45%,transparent);display:grid;place-items:center}
+
+/* Bottom Sheet */
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:35;transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+#sheet.open{transform:none}
+#scrim{position:fixed;inset:0;background:rgba(10,12,24,.52);opacity:0;pointer-events:none;transition:opacity .22s;z-index:34}
+body.so #scrim{opacity:1;pointer-events:auto}
+.sheetin{max-width:560px;margin:0 auto;background:var(--card);border-radius:26px 26px 0 0;padding:10px 18px calc(20px + env(safe-area-inset-bottom));max-height:89vh;overflow-y:auto;box-shadow:0 -10px 40px rgba(0,0,0,.28)}
+.grab{width:40px;height:5px;border-radius:9px;background:var(--line);margin:4px auto 12px}
+.sheetin h3{margin:0 0 12px;font-size:18px;font-weight:800}
+.fl{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:11px 2px 5px}
+.in{width:100%;background:var(--track);border:2px solid transparent;border-radius:13px;padding:12px 13px;font-size:15.5px;outline:0}
+.in:focus{border-color:var(--accent)}
+.in.big{font-size:30px;font-weight:800;text-align:center;padding:13px}
+textarea.in{min-height:86px;resize:vertical;line-height:1.45}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chips button{padding:8px 11px;border-radius:99px;background:var(--track);font-size:13px;font-weight:700;border:2px solid transparent}
+.chips button.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--card));color:var(--accent)}
+.sbtns{display:flex;gap:8px;margin-top:18px}
+.sbtns .btn{flex:1}
+.sbtns .del{flex:none;width:48px;background:color-mix(in srgb,var(--bad) 15%,var(--card));color:var(--bad)}
+
+/* Shared Voles Toggle */
+.vole-box{margin-top:12px;padding:11px 13px;border-radius:16px;background:var(--track);border:2px solid transparent;display:flex;align-items:center;gap:12px;width:100%;transition:.2s}
+.vole-box.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--card))}
+.vole-art{width:64px;height:44px;flex:none;display:grid;place-items:center}
+.vole-txt{flex:1;min-width:0}
+.vole-txt b{display:block;font-size:14px}
+.vole-txt small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.vole-box.on .vole-txt small{color:var(--accent);font-weight:700}
+.sw-knob{width:44px;height:26px;border-radius:99px;background:var(--line);position:relative;flex:none;transition:.2s}
+.sw-knob::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 2px 5px rgba(0,0,0,.2)}
+.vole-box.on .sw-knob{background:var(--accent)}
+.vole-box.on .sw-knob::after{transform:translateX(18px)}
+
+/* Settings helpers */
+.seg{display:flex;background:var(--track);border-radius:11px;padding:3px;gap:3px}
+.seg button{padding:6px 11px;border-radius:8px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.seg button.on{background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.dots{display:flex;gap:8px;flex-wrap:wrap}
+.dots button{width:28px;height:28px;border-radius:50%;border:3px solid transparent}
+.dots button.on{border-color:var(--text);transform:scale(1.08)}
+.toggle{width:44px;height:26px;border-radius:99px;background:var(--track);position:relative;flex:none;transition:.2s}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.22)}
+.toggle.on{background:var(--accent)}
+.toggle.on::after{transform:translateX(18px)}
+
+/* Auth overlay */
+#auth{position:fixed;inset:0;background:var(--bg);z-index:50;display:none;align-items:center;justify-content:center;padding:20px}
+#auth.open{display:flex}
+.auth-card{width:100%;max-width:400px;background:var(--card);border-radius:26px;padding:26px 22px;box-shadow:var(--shadow)}
+.auth-logo{width:62px;height:62px;border-radius:18px;margin:0 auto 12px;display:block}
+.auth-card h2{text-align:center;margin:0 0 6px;font-size:22px;font-weight:800}
+.auth-card p{text-align:center;color:var(--muted);font-size:13.5px;margin:0 0 18px}
+.auth-err{background:color-mix(in srgb,var(--bad) 13%,var(--card));color:var(--bad);border-radius:12px;padding:10px 12px;font-size:13px;font-weight:600;margin-bottom:12px;display:none}
+
+/* Toast */
+#toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translate(-50%,18px);background:var(--text);color:var(--bg);padding:11px 16px;border-radius:15px;font-size:13px;font-weight:700;opacity:0;transition:.25s;z-index:60;pointer-events:none;max-width:calc(100vw - 32px);text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#toast.bad{background:var(--bad);color:#fff}
+</style>
+</head>
+<body>
+
+<div id="auth">
+  <div class="auth-card">
+    <img src="icon.svg" alt="" class="auth-logo">
+    <h2 id="authTitle">Budżet</h2>
+    <p>Zaloguj się swoim prywatnym kontem, aby zsynchronizować dane w chmurze.</p>
+    <div id="authErr" class="auth-err"></div>
+    <label class="fl">Email</label>
+    <input class="in" id="a_email" type="email" autocomplete="email" placeholder="twoj@email.pl">
+    <label class="fl">Hasło</label>
+    <input class="in" id="a_pass" type="password" autocomplete="current-password" placeholder="••••••••">
+    <button class="btn full" id="a_btn" style="margin-top:18px">Zaloguj się</button>
+    <button class="btn ghost full" id="a_offline" style="margin-top:10px;display:none">Kontynuuj offline</button>
+  </div>
+</div>
+
+<div id="app"></div>
+
+<div class="nav">
+  <div class="nav-in" id="nav"></div>
+</div>
+
+<div id="sheet">
+  <div class="sheetin">
+    <div class="grab"></div>
+    <h3 id="sheetT"></h3>
+    <div id="sheetB"></div>
+    <div class="sbtns">
+      <button class="btn del" id="sheetDel" data-a="sheetDel" aria-label="Usuń">🗑</button>
+      <button class="btn ghost" data-a="sheetClose">Anuluj</button>
+      <button class="btn" id="sheetOk" data-a="sheetOk">Zapisz</button>
+    </div>
+  </div>
+</div>
+<div id="scrim" data-a="sheetClose"></div>
+<div id="toast"></div>
+<input type="file" id="fileIn" accept="application/json,.json" hidden>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+'use strict';
+
+/* ==================== CONSTANTS & HELPERS ==================== */
+const STORE_KEY = 'budzet.pwa.v1';
+const DIRTY_KEY = 'budzet.pwa.dirty.v1';
+const ACCENTS = [
+  ['#6C5CE7','#a29bfe','Fiolet'],
+  ['#00b894','#55efc4','Mięta'],
+  ['#0984e3','#74b9ff','Niebieski'],
+  ['#e17055','#fab1a0','Koral'],
+  ['#e84393','#fd79a8','Róż'],
+  ['#f39c12','#fdcb6e','Bursztyn']
+];
+const PILLAR_COLORS = ['#00b894','#6C5CE7','#0984e3','#f39c12','#e84393','#e17055','#00cec9'];
+const MONTHS_PL = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
+const MONTHS_SH = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru'];
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Math.random().toString(36).slice(2,8) + Date.now().toString(36).slice(-4);
+const sum = arr => arr.reduce((a,b) => a + (Number(b)||0), 0);
+const r2 = n => Math.round((Number(n)||0) * 100) / 100;
+const nf = new Intl.NumberFormat('pl-PL', {minimumFractionDigits:2, maximumFractionDigits:2});
+const nf0 = new Intl.NumberFormat('pl-PL', {minimumFractionDigits:0, maximumFractionDigits:0});
+const money = n => nf.format(r2(n)) + ' zł';
+const money0 = n => nf0.format(Math.round(Number(n)||0)) + ' zł';
+const tint = c => 'color-mix(in srgb,' + c + ' 16%,var(--card))';
+
+function parseNum(v){
+  const s = String(v == null ? '' : v).replace(/\s/g,'').replace(/,/g,'.');
+  if(!s) return NaN;
+  if(/^[0-9.+\-]+$/.test(s) && (s.includes('+') || s.slice(1).includes('-'))){
+    try{
+      const parts = s.match(/[+\-]?[0-9.]+/g);
+      if(parts && parts.length){
+        const tot = parts.reduce((acc,p) => acc + parseFloat(p), 0);
+        return isFinite(tot) ? r2(tot) : NaN;
+      }
+    }catch(e){}
+  }
+  const x = parseFloat(s);
+  return isFinite(x) ? r2(x) : NaN;
+}
+
+function todayStr(){
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0,10);
+}
+function parseISO(s){
+  const p = String(s).split('-').map(Number);
+  return new Date(p[0], p[1]-1, p[2]);
+}
+function toISO(d){
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function addDays(iso, n){
+  const d = parseISO(iso);
+  d.setDate(d.getDate() + n);
+  return toISO(d);
+}
+function diffDays(a, b){
+  return Math.round((parseISO(b) - parseISO(a)) / 86400000);
+}
+function currentCycleKey(payday){
+  const d = new Date();
+  let y = d.getFullYear(), m = d.getMonth() + 1;
+  if(d.getDate() < payday){ m--; if(m < 1){ m = 12; y--; } }
+  return y + '-' + String(m).padStart(2,'0');
+}
+function shiftCycle(ck, delta){
+  let [y,m] = ck.split('-').map(Number);
+  m += delta;
+  while(m > 12){ m -= 12; y++; }
+  while(m < 1){ m += 12; y--; }
+  return y + '-' + String(m).padStart(2,'0');
+}
+function cycleBounds(ck, payday){
+  const [y,m] = ck.split('-').map(Number);
+  const pd = Math.max(1, Math.min(28, Number(payday)||10));
+  const start = new Date(y, m-1, pd);
+  let end;
+  if(pd === 1){
+    end = new Date(y, m, 0);
+  }else{
+    end = new Date(y, m, pd - 1);
+  }
+  return { start: toISO(start), end: toISO(end) };
+}
+function cycleLabel(ck){
+  const [y,m] = ck.split('-').map(Number);
+  return MONTHS_PL[m-1] + ' ' + y;
+}
+function fmtShortDate(iso){
+  const p = iso.split('-');
+  return p[2] + '.' + p[1];
+}
+function dayLabel(iso){
+  const t = todayStr();
+  if(iso === t) return 'Dziś';
+  if(iso === addDays(t, -1)) return 'Wczoraj';
+  const d = parseISO(iso);
+  return d.toLocaleDateString('pl-PL', {weekday:'long', day:'numeric', month:'long'});
+}
+function cycleKeyForDate(iso, payday){
+  const pd = Math.max(1, Math.min(28, Number(payday)||10));
+  const p = iso.split('-').map(Number);
+  let y = p[0], m = p[1], day = p[2];
+  if(day < pd){ m--; if(m < 1){ m = 12; y--; } }
+  return y + '-' + String(m).padStart(2,'0');
+}
+
+/* ==================== CUTE VOLES SVG (NORNIKI) ==================== */
+function volesCuddleSVG(){
+  return '<svg viewBox="0 0 88 58" width="64" height="42" fill="none" xmlns="http://www.w3.org/2000/svg">'
+    + '<path d="M44 13 C44 9 39 7 37 10 C35 13 39 16 44 20 C49 16 53 13 51 10 C49 7 44 9 44 13Z" fill="#fd79a8"/>'
+    + '<circle cx="23" cy="24" r="5" fill="#9c7253"/><circle cx="23" cy="24" r="2.6" fill="#e6b8a2"/>'
+    + '<circle cx="65" cy="24" r="5" fill="#825e43"/><circle cx="65" cy="24" r="2.6" fill="#e6b8a2"/>'
+    + '<ellipse cx="32" cy="39" rx="16" ry="13" fill="#b0825f"/>'
+    + '<ellipse cx="34" cy="42" rx="9" ry="7" fill="#d9b79c"/>'
+    + '<ellipse cx="56" cy="39" rx="16" ry="13" fill="#946b4d"/>'
+    + '<ellipse cx="54" cy="42" rx="9" ry="7" fill="#cfa98b"/>'
+    + '<path d="M27 33 Q30 30 33 33" stroke="#2d2017" stroke-width="2" stroke-linecap="round"/>'
+    + '<path d="M55 33 Q58 30 61 33" stroke="#2d2017" stroke-width="2" stroke-linecap="round"/>'
+    + '<circle cx="37" cy="36" r="2" fill="#2d2017"/>'
+    + '<circle cx="51" cy="36" r="2" fill="#2d2017"/>'
+    + '<ellipse cx="26" cy="38" rx="3" ry="1.8" fill="#fd79a8" opacity="0.55"/>'
+    + '<ellipse cx="62" cy="38" rx="3" ry="1.8" fill="#fd79a8" opacity="0.55"/>'
+    + '<ellipse cx="44" cy="43" rx="6" ry="3.5" fill="#c49572"/>'
+    + '<circle cx="24" cy="51" r="3" fill="#825e43"/><circle cx="64" cy="51" r="3" fill="#704e36"/>'
+    + '</svg>';
+}
+function volesApartSVG(){
+  return '<svg viewBox="0 0 88 58" width="64" height="42" fill="none" xmlns="http://www.w3.org/2000/svg">'
+    + '<circle cx="15" cy="26" r="4.5" fill="#9c7253"/><circle cx="15" cy="26" r="2.2" fill="#e6b8a2"/>'
+    + '<circle cx="73" cy="26" r="4.5" fill="#825e43"/><circle cx="73" cy="26" r="2.2" fill="#e6b8a2"/>'
+    + '<ellipse cx="22" cy="40" rx="13" ry="11" fill="#b0825f"/>'
+    + '<ellipse cx="23" cy="43" rx="7" ry="6" fill="#d9b79c"/>'
+    + '<circle cx="25" cy="35" r="1.8" fill="#2d2017"/><circle cx="31" cy="37" r="1.8" fill="#2d2017"/>'
+    + '<ellipse cx="66" cy="40" rx="13" ry="11" fill="#946b4d"/>'
+    + '<ellipse cx="65" cy="43" rx="7" ry="6" fill="#cfa98b"/>'
+    + '<circle cx="63" cy="35" r="1.8" fill="#2d2017"/><circle cx="57" cy="37" r="1.8" fill="#2d2017"/>'
+    + '<line x1="40" y1="34" x2="48" y2="34" stroke="#8a8fa3" stroke-width="1.8" stroke-dasharray="2 3" stroke-linecap="round"/>'
+    + '</svg>';
+}
+function volesMiniSVG(){
+  return '<svg viewBox="0 0 40 26" width="22" height="15" fill="none" style="vertical-align:-2px">'
+    + '<path d="M20 5 C20 3 17.5 2 16.5 3.5 C15.5 5 17.5 6.5 20 8.5 C22.5 6.5 24.5 5 23.5 3.5 C22.5 2 20 3 20 5Z" fill="#fd79a8"/>'
+    + '<ellipse cx="14" cy="17" rx="8" ry="6.5" fill="#b0825f"/>'
+    + '<ellipse cx="26" cy="17" rx="8" ry="6.5" fill="#946b4d"/>'
+    + '<circle cx="15" cy="15" r="1.1" fill="#2d2017"/><circle cx="25" cy="15" r="1.1" fill="#2d2017"/>'
+    + '</svg>';
+}
+
+/* ==================== DEFAULT CLEAN STATE (0 ZL) ==================== */
+function defaultState(){
+  const nowY = new Date().getFullYear();
+  return {
+    v: 1,
+    updatedAt: new Date().toISOString(),
+    theme: 'auto',
+    accent: 0,
+    payday: 10,
+    budgets: {
+      food: 900,
+      weeks: [200, 200, 200, 200, 100],
+      fun: 500,
+      emerg: 500
+    },
+    incomesTemplate: [
+      {id:'inc_salary', name:'Wypłata', emoji:'💼', amount:0},
+      {id:'inc_extra', name:'Dodatkowe', emoji:'✨', amount:0},
+      {id:'inc_bonus', name:'Premia', emoji:'🎁', amount:0}
+    ],
+    recurring: [
+      {id:'rec_rent', name:'Mieszkanie', emoji:'🏠', mode:'variable', plan:0, enabled:true, defaultShared:true},
+      {id:'rec_phone', name:'Telefon', emoji:'📱', mode:'fixed', plan:0, enabled:true, defaultShared:false},
+      {id:'rec_stream', name:'Subskrypcje', emoji:'📺', mode:'fixed', plan:0, enabled:true, defaultShared:false},
+      {id:'rec_fuel', name:'Paliwo', emoji:'⛽', mode:'variable', plan:0, enabled:true, defaultShared:false},
+      {id:'rec_pet', name:'Kot / Zwierzę', emoji:'🐱', mode:'variable', plan:0, enabled:true, defaultShared:true},
+      {id:'rec_coffee', name:'Kawa', emoji:'☕', mode:'variable', plan:0, enabled:true, defaultShared:false}
+    ],
+    pillars: [
+      {id:'sav', name:'Oszczędnościowe', emoji:'🏦', color:'#00b894', enabled:true, countsToGoal:true, isPPK:false},
+      {id:'etf', name:'ETFy i Akcje', emoji:'📈', color:'#6C5CE7', enabled:true, countsToGoal:false, isPPK:false},
+      {id:'ppk', name:'PPK', emoji:'🏢', color:'#0984e3', enabled:true, countsToGoal:false, isPPK:true},
+      {id:'vac', name:'Skarbonka: Wakacje', emoji:'🏖️', color:'#f39c12', enabled:false, countsToGoal:false, isPPK:false}
+    ],
+    goals: { [String(nowY)]: 20000 },
+    cycles: {},          // ck -> { incomes:[], paidFixed:{}, closedVar:{}, settledWeeks:{}, transfers:[], note:'' }
+    expenses: [],        // { id, date, ck, cat, amount, fullAmount, shared, note, sourcePillar }
+    wealthMoves: [],     // { id, date, ym, pillarId, amount, note, fromCycle, toCycle, transferId, isManualMonth }
+    valuations: {}       // ym -> { pillarId: number }
+  };
+}
+
+function normalizeState(raw){
+  if(!raw || typeof raw !== 'object') return defaultState();
+  const d = defaultState();
+  const s = Object.assign(d, raw);
+  s.budgets = Object.assign(d.budgets, raw.budgets || {});
+  if(!Array.isArray(s.budgets.weeks) || s.budgets.weeks.length !== 5) s.budgets.weeks = [200,200,200,200,100];
+  if(!Array.isArray(s.incomesTemplate)) s.incomesTemplate = d.incomesTemplate;
+  if(!Array.isArray(s.recurring)) s.recurring = d.recurring;
+  if(!Array.isArray(s.pillars)) s.pillars = d.pillars;
+  if(!s.goals || typeof s.goals !== 'object') s.goals = d.goals;
+  if(!s.cycles || typeof s.cycles !== 'object') s.cycles = {};
+  if(!Array.isArray(s.expenses)) s.expenses = [];
+  if(!Array.isArray(s.wealthMoves)) s.wealthMoves = [];
+  if(!s.valuations || typeof s.valuations !== 'object') s.valuations = {};
+  return s;
+}
+
+let S = defaultState();
+try{
+  const saved = localStorage.getItem(STORE_KEY);
+  if(saved) S = normalizeState(JSON.parse(saved));
+}catch(e){}
+
+let view = {
+  tab: 'home',
+  ck: currentCycleKey(S.payday),
+  startPill: 'food',
+  expFilter: 'all',
+  year: new Date().getFullYear(),
+  selMonthIdx: new Date().getMonth()
+};
+
+/* ==================== SUPABASE CLOUD SYNC ==================== */
+const CFG = window.APP_CONFIG || {};
+const CLOUD_READY = !!(
+  CFG.SUPABASE_URL &&
+  CFG.SUPABASE_ANON_KEY &&
+  String(CFG.SUPABASE_URL).startsWith('https://') &&
+  !String(CFG.SUPABASE_URL).includes('TUTAJ_WKLEJ') &&
+  !String(CFG.SUPABASE_ANON_KEY).includes('TUTAJ_WKLEJ') &&
+  window.supabase
+);
+
+let sb = null;
+let session = null;
+let syncState = CLOUD_READY ? 'idle' : 'local'; // local | idle | syncing | ok | offline | error
+let lastSyncAt = null;
+let syncTimer = null;
+let inboxItems = [];
+
+function isDirty(){ return localStorage.getItem(DIRTY_KEY) === '1'; }
+function setDirty(v){ try{ localStorage.setItem(DIRTY_KEY, v ? '1' : '0'); }catch(e){} }
+
+function saveLocal(markDirty){
+  S.updatedAt = new Date().toISOString();
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(S)); }catch(e){}
+  if(markDirty !== false){
+    setDirty(true);
+    schedulePush();
+  }
+}
+
+function schedulePush(){
+  if(!CLOUD_READY || !session) return;
+  if(!navigator.onLine){ syncState = 'offline'; updateSyncPill(); return; }
+  clearTimeout(syncTimer);
+  syncState = 'syncing';
+  updateSyncPill();
+  syncTimer = setTimeout(() => pushToCloud(), 900);
+}
+
+async function pushToCloud(){
+  if(!sb || !session) return false;
+  if(!navigator.onLine){ syncState = 'offline'; updateSyncPill(); return false; }
+  syncState = 'syncing';
+  updateSyncPill();
+  try{
+    const { error } = await sb.from('app_state').upsert({
+      user_id: session.user.id,
+      data: S,
+      updated_at: S.updatedAt
+    }, { onConflict: 'user_id' });
+    if(error) throw error;
+    setDirty(false);
+    syncState = 'ok';
+    lastSyncAt = new Date();
+    updateSyncPill();
+    return true;
+  }catch(err){
+    syncState = navigator.onLine ? 'error' : 'offline';
+    updateSyncPill();
+    return false;
+  }
+}
+
+async function pullOrSyncCloud(silent){
+  if(!sb || !session) return;
+  if(!navigator.onLine){ syncState = 'offline'; updateSyncPill(); return; }
+  syncState = 'syncing';
+  updateSyncPill();
+  try{
+    const { data, error } = await sb.from('app_state')
+      .select('data, updated_at')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+    if(error) throw error;
+
+    const localTs = Date.parse(S.updatedAt || 0) || 0;
+    const remoteTs = data && data.updated_at ? Date.parse(data.updated_at) : 0;
+
+    if(!data){
+      // First time in cloud -> push local
+      await pushToCloud();
+    }else if(isDirty() && localTs >= remoteTs){
+      // Local offline changes are newer -> push
+      await pushToCloud();
+    }else if(remoteTs > localTs || !isDirty()){
+      // Cloud is newer or local clean -> pull
+      S = normalizeState(data.data);
+      S.updatedAt = data.updated_at;
+      try{ localStorage.setItem(STORE_KEY, JSON.stringify(S)); }catch(e){}
+      setDirty(false);
+      syncState = 'ok';
+      lastSyncAt = new Date();
+      view.ck = view.ck || currentCycleKey(S.payday);
+      render();
+    }else{
+      syncState = 'ok';
+      lastSyncAt = new Date();
+    }
+
+    // Fetch optional Apple Pay / Google Pay inbox
+    try{
+      const ib = await sb.from('inbox_payments')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('processed', false)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if(!ib.error && Array.isArray(ib.data)){
+        inboxItems = ib.data;
+        render();
+      }
+    }catch(e){}
+
+    updateSyncPill();
+    if(!silent) toast('Zsynchronizowano z chmurą ☁️');
+  }catch(err){
+    syncState = navigator.onLine ? 'error' : 'offline';
+    updateSyncPill();
+    if(!silent) toast('Brak połączenia z chmurą', true);
+  }
+}
+
+function updateSyncPill(){
+  const el = $('#syncPill');
+  if(!el) return;
+  el.className = 'sync-pill';
+  if(syncState === 'local'){ el.textContent = '💾 Lokalnie'; }
+  else if(syncState === 'syncing'){ el.textContent = '⏳ Zapis...'; el.classList.add('warn'); }
+  else if(syncState === 'ok'){ el.textContent = '☁️ Chmura'; el.classList.add('ok'); }
+  else if(syncState === 'offline'){ el.textContent = '📴 Offline'; el.classList.add('warn'); }
+  else if(syncState === 'error'){ el.textContent = '⚠️ Błąd'; el.classList.add('bad'); }
+  else { el.textContent = '☁️'; }
+}
+
+async function initAuth(){
+  if(CFG.APP_NAME){
+    document.title = CFG.APP_NAME;
+    const at = $('#authTitle');
+    if(at) at.textContent = CFG.APP_NAME;
+  }
+  if(!CLOUD_READY){
+    render();
+    return;
+  }
+  sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true }
+  });
+  const { data } = await sb.auth.getSession();
+  session = data ? data.session : null;
+  if(session){
+    $('#auth').classList.remove('open');
+    render();
+    pullOrSyncCloud(true);
+  }else{
+    $('#auth').classList.add('open');
+    if(!navigator.onLine) $('#a_offline').style.display = '';
+  }
+
+  sb.auth.onAuthStateChange((ev, sess) => {
+    session = sess;
+    if(sess){
+      $('#auth').classList.remove('open');
+      render();
+      pullOrSyncCloud(true);
+    }else{
+      $('#auth').classList.add('open');
+    }
+  });
+}
+
+/* ==================== CYCLE & BUDGET MATH ==================== */
+function getCycle(ck){
+  if(!S.cycles[ck]){
+    S.cycles[ck] = {
+      incomes: S.incomesTemplate.map(x => Object.assign({}, x)),
+      paidFixed: {},
+      closedVar: {},
+      settledWeeks: {},
+      transfers: [], // { id, from:'fun'|'emerg', to:'fun'|'emerg', amount, date }
+      note: ''
+    };
+  }
+  const c = S.cycles[ck];
+  if(!Array.isArray(c.incomes)) c.incomes = S.incomesTemplate.map(x => Object.assign({}, x));
+  if(!c.paidFixed) c.paidFixed = {};
+  if(!c.closedVar) c.closedVar = {};
+  if(!c.settledWeeks) c.settledWeeks = {};
+  if(!Array.isArray(c.transfers)) c.transfers = [];
+  if(c.note == null) c.note = '';
+  return c;
+}
+
+function getWeeks(ck){
+  const { start, end } = cycleBounds(ck, S.payday);
+  const totalDays = diffDays(start, end) + 1;
+  const base = S.budgets.weeks;
+  const exps = S.expenses.filter(e => e.ck === ck && e.cat === 'food' && !e.sourcePillar);
+  const cyc = getCycle(ck);
+  const t = todayStr();
+  const weeks = [];
+  let prevBal = 0;
+
+  for(let i = 0; i < 5; i++){
+    const sIdx = i * 7;
+    if(sIdx >= totalDays){
+      weeks.push({idx:i, start:end, end:end, empty:true, base:0, limit:0, spent:0, bal:0, isCurrent:false, isFinished:true, settled:true});
+      continue;
+    }
+    const eIdx = i === 4 ? totalDays - 1 : Math.min(totalDays - 1, sIdx + 6);
+    const ws = addDays(start, sIdx);
+    const we = addDays(start, eIdx);
+    const wSpent = r2(sum(exps.filter(e => e.date >= ws && e.date <= we).map(e => e.amount)));
+    const wBase = Number(base[i]) || 0;
+    const carry = prevBal < 0 ? prevBal : 0;
+    const wLimit = r2(wBase + carry);
+    const wBal = r2(wLimit - wSpent);
+    const isCurrent = (t >= ws && t <= we);
+    const isFinished = (t > we);
+    const daysLeft = isCurrent ? (diffDays(t, we) + 1) : 0;
+    weeks.push({
+      idx: i, start: ws, end: we, empty: false,
+      base: wBase, limit: wLimit, spent: wSpent, bal: wBal,
+      isCurrent, isFinished, daysLeft,
+      settled: !!cyc.settledWeeks[i]
+    });
+    prevBal = wBal;
+  }
+  return weeks;
+}
+
+function cycleBudgets(ck){
+  const cyc = getCycle(ck);
+  const exps = S.expenses.filter(e => e.ck === ck && !e.sourcePillar);
+  const foodSpent = r2(sum(exps.filter(e => e.cat === 'food').map(e => e.amount)));
+  const funSpent = r2(sum(exps.filter(e => e.cat === 'fun').map(e => e.amount)));
+  const emergSpent = r2(sum(exps.filter(e => e.cat === 'emerg').map(e => e.amount)));
+
+  let funShift = 0, emergShift = 0;
+  cyc.transfers.forEach(tr => {
+    if(tr.from === 'emerg' && tr.to === 'fun'){ funShift += tr.amount; emergShift -= tr.amount; }
+    if(tr.from === 'fun' && tr.to === 'emerg'){ funShift -= tr.amount; emergShift += tr.amount; }
+  });
+
+  const foodLim = r2(S.budgets.food);
+  const funLim = r2(Math.max(0, S.budgets.fun + funShift));
+  const emergLim = r2(Math.max(0, S.budgets.emerg + emergShift));
+
+  // Recurring spent in this cycle
+  let recSpent = 0;
+  const activeRec = S.recurring.filter(r => r.enabled);
+  const recDetails = activeRec.map(r => {
+    if(r.mode === 'fixed'){
+      const p = cyc.paidFixed[r.id];
+      const spent = p && p.paid ? r2(p.amount) : 0;
+      recSpent += spent;
+      return { r, spent, paid: !!(p && p.paid), plan: r2(p && p.amount != null ? p.amount : r.plan) };
+    }else{
+      const spent = r2(sum(exps.filter(e => e.cat === r.id).map(e => e.amount)));
+      recSpent += spent;
+      return { r, spent, paid: !!cyc.closedVar[r.id], plan: r2(r.plan) };
+    }
+  });
+
+  const totalIncome = r2(sum(cyc.incomes.map(i => i.amount)));
+  const pulledToCycle = r2(sum(S.wealthMoves.filter(m => m.toCycle === ck && m.amount < 0).map(m => -m.amount)));
+  const pushedToWealth = r2(sum(S.wealthMoves.filter(m => m.fromCycle === ck && m.amount > 0).map(m => m.amount)));
+  const totalSpentCycle = r2(foodSpent + funSpent + emergSpent + recSpent);
+  const accountLeft = r2(totalIncome + pulledToCycle - totalSpentCycle - pushedToWealth);
+
+  return {
+    foodLim, foodSpent, foodLeft: r2(foodLim - foodSpent),
+    funLim, funSpent, funLeft: r2(funLim - funSpent), funShift: r2(funShift),
+    emergLim, emergSpent, emergLeft: r2(emergLim - emergSpent), emergShift: r2(emergShift),
+    recSpent: r2(recSpent), recDetails,
+    totalIncome, pulledToCycle, pushedToWealth, totalSpentCycle, accountLeft
+  };
+}
+
+/* ==================== WEALTH & CHARTS MATH ==================== */
+function activePillars(){ return S.pillars.filter(p => p.enabled); }
+function pillarById(id){ return S.pillars.find(p => p.id === id); }
+
+function pillarMonthMetrics(pid, ym){
+  const movesUpTo = S.wealthMoves.filter(m => m.pillarId === pid && m.ym <= ym);
+  const cumDep = r2(sum(movesUpTo.map(m => m.amount)));
+  const monthDep = r2(sum(S.wealthMoves.filter(m => m.pillarId === pid && m.ym === ym).map(m => m.amount)));
+
+  // Find latest valuation <= ym
+  const valKeys = Object.keys(S.valuations).filter(k => k <= ym && S.valuations[k] && S.valuations[k][pid] != null).sort();
+  let val = cumDep;
+  let hasExactVal = false;
+  if(valKeys.length){
+    const lastK = valKeys[valKeys.length - 1];
+    hasExactVal = (lastK === ym);
+    const baseVal = Number(S.valuations[lastK][pid]) || 0;
+    const afterMoves = sum(S.wealthMoves.filter(m => m.pillarId === pid && m.ym > lastK && m.ym <= ym).map(m => m.amount));
+    val = r2(baseVal + afterMoves);
+  }
+  const profit = r2(val - cumDep);
+  const hasAny = movesUpTo.length > 0 || valKeys.length > 0;
+  return { monthDep, cumDep, val, profit, hasExactVal, hasAny };
+}
+
+function yearSummary(year){
+  const ps = activePillars();
+  const nonPPK = ps.filter(p => !p.isPPK);
+  const months = [];
+  for(let m = 1; m <= 12; m++){
+    const ym = year + '-' + String(m).padStart(2,'0');
+    let depNoPPK = 0, valNoPPK = 0, profNoPPK = 0, totalVal = 0, anyData = false;
+    const perPillar = {};
+    ps.forEach(p => {
+      const pm = pillarMonthMetrics(p.id, ym);
+      perPillar[p.id] = pm;
+      totalVal += pm.val;
+      if(pm.hasAny && (pm.monthDep !== 0 || pm.hasExactVal)) anyData = true;
+      if(!p.isPPK){
+        depNoPPK += pm.cumDep;
+        valNoPPK += pm.val;
+        profNoPPK += pm.profit;
+      }
+    });
+    const roi = depNoPPK > 0 ? (profNoPPK / depNoPPK) * 100 : 0;
+    months.push({
+      m, ym, short: MONTHS_SH[m-1], name: MONTHS_PL[m-1],
+      depNoPPK: r2(depNoPPK), valNoPPK: r2(valNoPPK), profNoPPK: r2(profNoPPK),
+      totalVal: r2(totalVal), roi: r2(roi), anyData, perPillar
+    });
+  }
+
+  // Latest active month in year (or current month if in current year)
+  const nowY = new Date().getFullYear(), nowM = new Date().getMonth();
+  let lastIdx = -1;
+  for(let i = 11; i >= 0; i--){ if(months[i].anyData){ lastIdx = i; break; } }
+  const curIdx = lastIdx >= 0 ? lastIdx : (year === nowY ? nowM : 11);
+  const curYM = year + '-' + String(curIdx + 1).padStart(2,'0');
+
+  // Pillar current balances up to curYM (or latest overall for selected year)
+  const pillarVals = ps.map(p => {
+    const pm = pillarMonthMetrics(p.id, year + '-12');
+    return Object.assign({ val: pm.val, cumDep: pm.cumDep, profit: pm.profit }, p);
+  });
+  const totalNetWorth = r2(sum(pillarVals.map(p => p.val)));
+
+  // Goal calculation (countsToGoal pillars, e.g. Oszczędnościowe)
+  const goalTarget = Number(S.goals[String(year)]) || 20000;
+  const goalPillars = pillarVals.filter(p => p.countsToGoal);
+  const goalCurrent = r2(sum((goalPillars.length ? goalPillars : pillarVals.filter(p => !p.isPPK)).map(p => p.val)));
+  const goalRemaining = r2(Math.max(0, goalTarget - goalCurrent));
+  let monthsLeft = 12;
+  if(year === nowY) monthsLeft = Math.max(1, 12 - nowM);
+  else if(year < nowY) monthsLeft = 1;
+  const perMonthToGoal = r2(goalRemaining / monthsLeft);
+
+  const curNoPPKDep = r2(sum(pillarVals.filter(p => !p.isPPK).map(p => p.cumDep)));
+  const curNoPPKProf = r2(sum(pillarVals.filter(p => !p.isPPK).map(p => p.profit)));
+  const curROI = curNoPPKDep > 0 ? r2((curNoPPKProf / curNoPPKDep) * 100) : 0;
+
+  return {
+    months, curIdx, curYM, pillarVals, totalNetWorth,
+    goalTarget, goalCurrent, goalRemaining, monthsLeft, perMonthToGoal,
+    curNoPPKDep, curNoPPKProf, curROI
+  };
+}
+
+/* ==================== CATEGORY INFO ==================== */
+function catInfo(catId){
+  if(catId === 'food') return {id:'food', name:'Jedzenie', emoji:'🍽️', color:'#00b894'};
+  if(catId === 'fun') return {id:'fun', name:'Zachcianki + piąteczki', emoji:'🎉', color:'#e84393'};
+  if(catId === 'emerg') return {id:'emerg', name:'Coś nagłego', emoji:'🚨', color:'#e17055'};
+  const r = S.recurring.find(x => x.id === catId);
+  if(r) return {id:r.id, name:r.name, emoji:r.emoji, color:'#0984e3'};
+  return {id:'other', name:'Wydatek', emoji:'🧾', color:'#636e72'};
+}
+
+/* ==================== THEME ==================== */
+function applyTheme(){
+  const r = document.documentElement;
+  r.setAttribute('data-theme', S.theme || 'auto');
+  const a = ACCENTS[S.accent] || ACCENTS[0];
+  r.style.setProperty('--accent', a[0]);
+  r.style.setProperty('--accent2', a[1]);
+  const meta = document.querySelector('meta[name=theme-color]');
+  if(meta) meta.setAttribute('content', a[0]);
+}
+
+/* ==================== RENDER VIEWS ==================== */
+function topbar(title, mode){
+  let right = '';
+  if(mode === 'cycle'){
+    right = '<div class="msw"><button data-a="prevCycle">‹</button><span>' + esc(cycleLabel(view.ck)) + '</span><button data-a="nextCycle">›</button></div>';
+  }else if(mode === 'year'){
+    right = '<div class="msw yr"><button data-a="prevYear">‹</button><span>' + view.year + '</span><button data-a="nextYear">›</button></div>';
+  }
+  return '<div class="top"><div class="top-l"><h1>' + esc(title) + '</h1><button id="syncPill" class="sync-pill" data-a="manualSync"></button></div>' + right + '</div>';
+}
+
+function vHome(){
+  const ck = view.ck;
+  const b = cycleBudgets(ck);
+  const weeks = getWeeks(ck);
+  const bounds = cycleBounds(ck, S.payday);
+
+  // Pick active week (current week if in cycle, otherwise first week with data or T1)
+  let activeW = weeks.find(w => w.isCurrent && !w.empty) || weeks.find(w => !w.empty && !w.isFinished) || weeks[0];
+
+  let h = topbar('Budżet', 'cycle');
+
+  // Optional Apple Pay / Google Pay inbox
+  if(inboxItems.length){
+    inboxItems.forEach(item => {
+      h += '<div class="banner accent"><div class="bt"><b>💳 Wykryto płatność: ' + money(item.amount) + '</b>' + esc(item.merchant || 'Płatność kartą') + '</div>'
+        + '<div style="display:flex;gap:6px"><button class="btn sm" data-a="approveInbox" data-id="' + esc(item.id) + '">Dodaj</button>'
+        + '<button class="btn ghost sm" data-a="dismissInbox" data-id="' + esc(item.id) + '">✕</button></div></div>';
+    });
+  }
+
+  // 4 Budget selection pills
+  const pills = [
+    ['food','🍽️ Jedzenie'],
+    ['fun','🎉 Zachcianki'],
+    ['emerg','🚨 Nagłe'],
+    ['all','📊 Razem']
+  ];
+  h += '<div class="pills">' + pills.map(p =>
+    '<button class="pill' + (view.startPill === p[0] ? ' on' : '') + '" data-a="startPill" data-v="' + p[0] + '">' + p[1] + '</button>'
+  ).join('') + '</div>';
+
+  // Dynamic Hero based on selected pill
+  if(view.startPill === 'food'){
+    const over = activeW.bal < 0;
+    const pct = activeW.limit > 0 ? Math.min(100, Math.max(0, (activeW.spent / activeW.limit) * 100)) : (activeW.spent > 0 ? 100 : 0);
+    const subTag = activeW.isCurrent ? ('Zostało ' + activeW.daysLeft + ' dn.') : (fmtShortDate(activeW.start) + ' – ' + fmtShortDate(activeW.end));
+    h += '<div class="hero' + (over ? ' over' : '') + '">'
+      + '<div class="lbl"><span>Jedzenie · Tydzień ' + (activeW.idx + 1) + '</span><span>' + subTag + '</span></div>'
+      + '<div class="big">' + (over ? '−' + money(-activeW.bal) : money(activeW.bal)) + '</div>'
+      + '<div class="hbar"><i style="width:' + pct + '%"></i></div>'
+      + '<div class="hrow"><div>Wydano w T' + (activeW.idx+1) + '<b>' + money(activeW.spent) + '</b></div><div class="r">Limit T' + (activeW.idx+1) + '<b>' + money(activeW.limit) + '</b></div></div>'
+      + '<div class="hsub"><span>Cały cykl (' + fmtShortDate(bounds.start) + '–' + fmtShortDate(bounds.end) + ')</span><b>' + money(b.foodSpent) + ' / ' + money(b.foodLim) + '</b></div>'
+      + '</div>';
+
+    // Surplus banners for finished unsettled weeks
+    weeks.forEach(w => {
+      if(!w.empty && w.isFinished && w.bal > 0.01 && !w.settled){
+        h += '<div class="banner ok"><div class="bt"><b>💰 Nadwyżka z T' + (w.idx+1) + ': +' + money(w.bal) + '</b>Kliknij, gdy przelejesz na Oszczędnościowe</div>'
+          + '<button class="btn ok sm" data-a="settleWeek" data-w="' + w.idx + '" data-amt="' + w.bal + '">✓ Przelane</button></div>';
+      }
+    });
+
+    // Weekly grid T1-T5
+    h += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center">'
+      + '<b style="font-size:14.5px">Tygodniówki na jedzenie</b><span class="hint">Minus przechodzi dalej</span></div>'
+      + '<div class="wgrid">' + weeks.map(w => {
+        if(w.empty) return '<div class="wbox"><small>T' + (w.idx+1) + '</small><b>—</b><span>brak</span></div>';
+        const cls = (w.isCurrent ? ' cur' : '') + (w.bal < 0 ? ' neg' : (w.isFinished && w.bal > 0 ? ' pos' : ''));
+        const st = w.settled ? '✓ przel.' : (w.bal < 0 ? 'deficyt' : (w.isCurrent ? 'teraz' : fmtShortDate(w.start)));
+        return '<div class="wbox' + cls + '"><small>T' + (w.idx+1) + '</small><b>' + (w.bal < 0 ? '−' : '') + money0(Math.abs(w.bal)) + '</b><span>' + st + '</span></div>';
+      }).join('') + '</div></div>';
+
+  }else if(view.startPill === 'fun'){
+    const over = b.funLeft < 0;
+    const pct = b.funLim > 0 ? Math.min(100, (b.funSpent / b.funLim) * 100) : (b.funSpent > 0 ? 100 : 0);
+    h += '<div class="hero' + (over ? ' over' : '') + '">'
+      + '<div class="lbl"><span>🎉 Zachcianki + piąteczki</span><span>' + fmtShortDate(bounds.start) + '–' + fmtShortDate(bounds.end) + '</span></div>'
+      + '<div class="big">' + (over ? '−' + money(-b.funLeft) : money(b.funLeft)) + '</div>'
+      + '<div class="hbar"><i style="width:' + pct + '%"></i></div>'
+      + '<div class="hrow"><div>Wydano<b>' + money(b.funSpent) + '</b></div><div class="r">Budżet' + (b.funShift ? ' (' + (b.funShift>0?'+':'') + money0(b.funShift) + ')' : '') + '<b>' + money(b.funLim) + '</b></div></div>'
+      + '</div>';
+    h += '<div class="qbtns"><button class="btn ghost" data-a="shiftBudget">⇄ Przerzuć z/do Nagłych</button><button class="btn" data-a="addExp" data-cat="fun">＋ Dodaj zachciankę</button></div>';
+
+  }else if(view.startPill === 'emerg'){
+    const over = b.emergLeft < 0;
+    const pct = b.emergLim > 0 ? Math.min(100, (b.emergSpent / b.emergLim) * 100) : (b.emergSpent > 0 ? 100 : 0);
+    h += '<div class="hero' + (over ? ' over' : '') + '">'
+      + '<div class="lbl"><span>🚨 Coś nagłego</span><span>' + fmtShortDate(bounds.start) + '–' + fmtShortDate(bounds.end) + '</span></div>'
+      + '<div class="big">' + (over ? '−' + money(-b.emergLeft) : money(b.emergLeft)) + '</div>'
+      + '<div class="hbar"><i style="width:' + pct + '%"></i></div>'
+      + '<div class="hrow"><div>Wydano<b>' + money(b.emergSpent) + '</b></div><div class="r">Budżet' + (b.emergShift ? ' (' + (b.emergShift>0?'+':'') + money0(b.emergShift) + ')' : '') + '<b>' + money(b.emergLim) + '</b></div></div>'
+      + '</div>';
+    h += '<div class="qbtns"><button class="btn ghost" data-a="shiftBudget">⇄ Przerzuć z/do Zachcianek</button><button class="btn" data-a="addExp" data-cat="emerg">＋ Dodaj nagły</button></div>';
+
+  }else{
+    const totLim = r2(b.foodLim + b.funLim + b.emergLim);
+    const totSpent = r2(b.foodSpent + b.funSpent + b.emergSpent);
+    const totLeft = r2(totLim - totSpent);
+    const over = totLeft < 0;
+    const pct = totLim > 0 ? Math.min(100, (totSpent / totLim) * 100) : 0;
+    h += '<div class="hero' + (over ? ' over' : '') + '">'
+      + '<div class="lbl"><span>📊 Wszystkie zmienne razem</span><span>' + fmtShortDate(bounds.start) + '–' + fmtShortDate(bounds.end) + '</span></div>'
+      + '<div class="big">' + (over ? '−' + money(-totLeft) : money(totLeft)) + '</div>'
+      + '<div class="hbar"><i style="width:' + pct + '%"></i></div>'
+      + '<div class="hrow"><div>Wydano łącznie<b>' + money(totSpent) + '</b></div><div class="r">Łączny budżet<b>' + money(totLim) + '</b></div></div>'
+      + '</div>';
+
+    const rows = [
+      ['🍽️','Jedzenie', b.foodSpent, b.foodLim, '#00b894', 'food'],
+      ['🎉','Zachcianki + piąteczki', b.funSpent, b.funLim, '#e84393', 'fun'],
+      ['🚨','Coś nagłego', b.emergSpent, b.emergLim, '#e17055', 'emerg']
+    ];
+    h += '<div class="card">' + rows.map(r => {
+      const left = r2(r[3] - r[2]);
+      const p = r[3] > 0 ? Math.min(100, (r[2]/r[3])*100) : 0;
+      const col = p >= 100 ? 'var(--bad)' : (p >= 80 ? 'var(--warn)' : r[4]);
+      return '<div style="margin-bottom:13px" data-a="startPill" data-v="' + r[5] + '" role="button">'
+        + '<div style="display:flex;justify-content:space-between;font-size:13.5px"><b>' + r[0] + ' ' + r[1] + '</b>'
+        + '<b style="color:' + (left<0?'var(--bad)':'var(--text)') + '">' + (left<0?'−'+money(-left):money(left)) + '</b></div>'
+        + '<div class="hint" style="margin-top:1px">Wydano ' + money(r[2]) + ' z ' + money(r[3]) + '</div>'
+        + '<div class="bar"><i style="width:' + p + '%;background:' + col + '"></i></div></div>';
+    }).join('') + '</div>';
+  }
+
+  // Recent expenses in cycle
+  const recent = S.expenses.filter(e => e.ck === ck).sort((a,b) => b.date.localeCompare(a.date)).slice(0,5);
+  h += '<div class="sec"><h2>Ostatnie w tym cyklu</h2><button data-a="tab" data-v="exp">Wszystkie ›</button></div>';
+  if(!recent.length){
+    h += '<div class="card"><div class="empty" style="padding:20px 10px"><b>🌱</b>Czysta karta na ten cykl.<br>Stuknij duży <b>＋</b> na dole, aby dodać pierwszy wydatek.</div></div>';
+  }else{
+    h += '<div class="card" style="padding:4px 15px">' + recent.map(e => renderExpenseRow(e)).join('') + '</div>';
+  }
+  return h;
+}
+
+function renderExpenseRow(e){
+  const c = catInfo(e.cat);
+  const srcP = e.sourcePillar ? pillarById(e.sourcePillar) : null;
+  let badges = '<span>' + esc(c.name) + '</span>';
+  if(e.shared) badges += '<span class="tag shared">' + volesMiniSVG() + ' ÷2 z ' + money(e.fullAmount || e.amount*2) + '</span>';
+  if(srcP) badges += '<span class="tag src">' + esc(srcP.emoji) + ' z: ' + esc(srcP.name) + '</span>';
+  return '<button class="row" data-a="editExp" data-id="' + esc(e.id) + '">'
+    + '<div class="ico" style="background:' + tint(c.color) + '">' + esc(c.emoji) + '</div>'
+    + '<div class="nm"><b>' + esc(e.note || c.name) + '</b><small>' + badges + '</small></div>'
+    + '<div class="amt">−' + money(e.amount) + '</div></button>';
+}
+
+function vExpenses(){
+  const ck = view.ck;
+  let list = S.expenses.filter(e => e.ck === ck);
+  if(view.expFilter === 'food') list = list.filter(e => e.cat === 'food' && !e.sourcePillar);
+  else if(view.expFilter === 'fun') list = list.filter(e => e.cat === 'fun' && !e.sourcePillar);
+  else if(view.expFilter === 'emerg') list = list.filter(e => e.cat === 'emerg' && !e.sourcePillar);
+  else if(view.expFilter === 'rec') list = list.filter(e => !['food','fun','emerg'].includes(e.cat) && !e.sourcePillar);
+  else if(view.expFilter === 'src') list = list.filter(e => !!e.sourcePillar);
+  list.sort((a,b) => b.date.localeCompare(a.date));
+
+  const tot = r2(sum(list.map(e => e.amount)));
+  let h = topbar('Wydatki', 'cycle');
+  const flt = [['all','Wszystkie'],['food','🍽️ Jedzenie'],['fun','🎉 Zachcianki'],['emerg','🚨 Nagłe'],['rec','🔄 Cykliczne'],['src','🏖️ Ze skarbonki']];
+  h += '<div class="pills">' + flt.map(f =>
+    '<button class="pill' + (view.expFilter === f[0] ? ' on' : '') + '" data-a="expFilter" data-v="' + f[0] + '">' + f[1] + '</button>'
+  ).join('') + '</div>';
+
+  h += '<div style="display:flex;gap:10px;margin-bottom:12px">'
+    + '<div class="card" style="flex:1;margin:0;padding:13px"><span class="hint">Suma widoku</span><b style="display:block;font-size:18px;margin-top:2px">' + money(tot) + '</b></div>'
+    + '<div class="card" style="flex:1;margin:0;padding:13px"><span class="hint">Liczba wpisów</span><b style="display:block;font-size:18px;margin-top:2px">' + list.length + '</b></div></div>';
+
+  if(!list.length){
+    return h + '<div class="empty"><b>🧾</b>Brak wydatków w tym widoku.<br>Stuknij <b>＋</b> na dole, aby coś dodać.</div>';
+  }
+  let lastD = '';
+  h += '<div class="card" style="padding:4px 15px 8px">';
+  list.forEach(e => {
+    if(e.date !== lastD){ h += '<div class="day">' + dayLabel(e.date) + '</div>'; lastD = e.date; }
+    h += renderExpenseRow(e);
+  });
+  return h + '</div>';
+}
+
+function vCycle(){
+  const ck = view.ck;
+  const cyc = getCycle(ck);
+  const b = cycleBudgets(ck);
+  const bounds = cycleBounds(ck, S.payday);
+  let h = topbar('Cykl', 'cycle');
+
+  // Full balance equation
+  h += '<div class="card">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b style="font-size:15px">⚖️ Bilans konta bieżącego</b><span class="hint">' + fmtShortDate(bounds.start) + ' – ' + fmtShortDate(bounds.end) + '</span></div>'
+    + '<div class="eq">'
+    + '<div class="eq-r"><span>Wpływy w cyklu</span><b style="color:var(--ok)">+' + money(b.totalIncome) + '</b></div>'
+    + (b.pulledToCycle > 0 ? '<div class="eq-r"><span>Wyjęte z oszczędności do cyklu</span><b style="color:var(--ok)">+' + money(b.pulledToCycle) + '</b></div>' : '')
+    + '<div class="eq-r"><span>Wydatki z cyklu (zmienne + cykliczne)</span><b>−' + money(b.totalSpentCycle) + '</b></div>'
+    + '<div class="eq-r"><span>Przelane na majątek / skarbonki</span><b>−' + money(b.pushedToWealth) + '</b></div>'
+    + '<div class="eq-r tot"><span>Zostało na koncie bieżącym</span><span style="color:' + (b.accountLeft < 0 ? 'var(--bad)' : 'var(--ok)') + '">' + money(b.accountLeft) + '</span></div>'
+    + '</div></div>';
+
+  // Incomes
+  h += '<div class="sec"><h2>Wpływy</h2><button data-a="addIncome">+ Dodaj wpływ</button></div>';
+  h += '<div class="card" style="padding:4px 15px">';
+  cyc.incomes.forEach(inc => {
+    h += '<button class="row" data-a="editIncome" data-id="' + esc(inc.id) + '">'
+      + '<div class="ico" style="background:' + tint('#00b894') + '">' + esc(inc.emoji || '💰') + '</div>'
+      + '<div class="nm"><b>' + esc(inc.name) + '</b><small>Kliknij, aby wpisać kwotę</small></div>'
+      + '<div class="amt" style="color:var(--ok)">+' + money(inc.amount) + '</div></button>';
+  });
+  h += '</div>';
+
+  // Recurring bills
+  h += '<div class="sec"><h2>Opłaty cykliczne</h2><button data-a="tab" data-v="set">Konfiguruj ›</button></div>';
+  if(!b.recDetails.length){
+    h += '<div class="card"><div class="empty" style="padding:18px">Brak aktywnych opłat cyklicznych. Włącz je w Ustawieniach.</div></div>';
+  }else{
+    h += '<div class="card" style="padding:4px 15px">';
+    b.recDetails.forEach(d => {
+      const r = d.r;
+      if(r.mode === 'fixed'){
+        h += '<div class="row">'
+          + '<div class="ico" style="background:' + tint('#0984e3') + '">' + esc(r.emoji) + '</div>'
+          + '<button class="nm" data-a="editFixedBill" data-id="' + esc(r.id) + '"><b>' + esc(r.name) + '</b>'
+          + '<small><span class="tag">🔒 Stała</span> ' + (d.paid ? '<span class="tag ok">✓ Opłacono</span>' : 'Plan: ' + money(d.plan)) + '</small></button>'
+          + '<button class="btn sm ' + (d.paid ? 'ghost' : 'ok') + '" data-a="toggleFixedBill" data-id="' + esc(r.id) + '">' + (d.paid ? money(d.spent) : '✓ Zapłać') + '</button></div>';
+      }else{
+        h += '<div class="row">'
+          + '<div class="ico" style="background:' + tint('#6C5CE7') + '">' + esc(r.emoji) + '</div>'
+          + '<button class="nm" data-a="addExp" data-cat="' + esc(r.id) + '"><b>' + esc(r.name) + '</b>'
+          + '<small><span class="tag">📊 Zmienna</span> Wydano ' + money(d.spent) + (d.plan > 0 ? ' / ' + money(d.plan) : '') + (d.paid ? ' <span class="tag ok">✓</span>' : '') + '</small></button>'
+          + '<div style="display:flex;gap:5px"><button class="btn sm" data-a="addExp" data-cat="' + esc(r.id) + '">＋</button>'
+          + '<button class="btn sm ' + (d.paid ? 'ok' : 'ghost') + '" data-a="toggleVarClosed" data-id="' + esc(r.id) + '">✓</button></div></div>';
+      }
+    });
+    h += '</div>';
+  }
+
+  // Monthly retrospective notes
+  h += '<div class="sec"><h2>Wnioski z cyklu</h2></div>';
+  h += '<div class="card"><textarea class="in" id="cycleNote" placeholder="Zapisz luźne wnioski z tego miesiąca — co poszło dobrze, a na czym udało się oszczędzić...">' + esc(cyc.note) + '</textarea></div>';
+  return h;
+}
+
+function vWealth(){
+  const y = view.year;
+  const ys = yearSummary(y);
+  const selM = ys.months[view.selMonthIdx] || ys.months[ys.curIdx];
+  let h = topbar('Majątek', 'year');
+
+  // Hero net worth
+  h += '<div class="hero">'
+    + '<div class="lbl"><span>Łączny majątek (' + y + ')</span><span>Aktywne filary: ' + ys.pillarVals.length + '</span></div>'
+    + '<div class="big">' + money(ys.totalNetWorth) + '</div>'
+    + '<div class="hrow"><div>Zysk (bez PPK)<b>' + (ys.curNoPPKProf >= 0 ? '+' : '') + money(ys.curNoPPKProf) + '</b></div>'
+    + '<div class="r">Stopa zwrotu (bez PPK)<b>' + (ys.curROI >= 0 ? '+' : '') + ys.curROI.toFixed(2) + '%</b></div></div></div>';
+
+  // Action buttons
+  h += '<div class="qbtns">'
+    + '<button class="btn ok" data-a="wealthIn">＋ Wpłata</button>'
+    + '<button class="btn bad" data-a="wealthOut">− Wyjmij</button>'
+    + '<button class="btn ghost" data-a="monthEntry" data-m="' + (view.selMonthIdx + 1) + '">📊 Wpisz mies.</button>'
+    + '</div>';
+
+  // Annual goal card
+  const gPct = ys.goalTarget > 0 ? Math.min(100, Math.max(0, (ys.goalCurrent / ys.goalTarget) * 100)) : 0;
+  h += '<div class="card">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center">'
+    + '<b style="font-size:15px">🎯 Cel oszczędnościowy ' + y + '</b>'
+    + '<button style="color:var(--accent);font-weight:700;font-size:13px" data-a="editGoal">Zmień cel ✎</button></div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px">'
+    + '<b style="font-size:20px">' + money(ys.goalCurrent) + '</b><span class="hint">z ' + money(ys.goalTarget) + ' (' + Math.round(gPct) + '%)</span></div>'
+    + '<div class="bar"><i style="width:' + gPct + '%;background:' + (gPct>=100?'var(--ok)':'var(--accent)') + '"></i></div>'
+    + '<div class="hint" style="margin-top:8px">' + (ys.goalRemaining <= 0
+      ? 'Cel na ' + y + ' osiągnięty! 🎉'
+      : 'Do celu brakuje <b>' + money(ys.goalRemaining) + '</b> · ok. <b>' + money(ys.perMonthToGoal) + ' / mies.</b> (pozostało ' + ys.monthsLeft + ' mies.)')
+    + '</div></div>';
+
+  // Readable Stacked Bar Chart (Sty-Gru)
+  const maxVal = Math.max(100, ...ys.months.map(m => Math.max(m.valNoPPK, m.depNoPPK)));
+  h += '<div class="sec"><h2>Wzrost majątku ' + y + ' (bez PPK)</h2><button data-a="monthEntry" data-m="' + selM.m + '">✎ ' + selM.name + '</button></div>';
+  h += '<div class="card"><div class="bar-detail">'
+    + '<div style="display:flex;justify-content:space-between;width:100%;align-items:center"><b style="font-size:14px">' + selM.name + ' ' + y + '</b>'
+    + '<span class="tag ok">' + (selM.roi >= 0 ? '+' : '') + selM.roi.toFixed(2) + '%</span></div>'
+    + '<div class="bar-detail-grid">'
+    + '<div><span class="hint">Suma wpłat</span><b>' + money0(selM.depNoPPK) + '</b></div>'
+    + '<div><span class="hint">Wartość</span><b>' + money0(selM.valNoPPK) + '</b></div>'
+    + '<div><span class="hint">Zysk</span><b style="color:' + (selM.profNoPPK>=0?'var(--ok)':'var(--bad)') + '">' + (selM.profNoPPK>=0?'+':'') + money(selM.profNoPPK) + '</b></div>'
+    + '</div></div>';
+
+  h += '<div class="barchart">';
+  ys.months.forEach((m, idx) => {
+    const sel = idx === view.selMonthIdx;
+    if(!m.anyData && m.valNoPPK <= 0){
+      h += '<div class="bcol' + (sel ? ' sel' : '') + '" data-a="selMonth" data-i="' + idx + '"><div class="bstack"><div class="bempty"></div></div><span class="blbl">' + m.short + '</span></div>';
+    }else{
+      const baseV = Math.max(0, Math.min(m.depNoPPK, m.valNoPPK));
+      const profV = Math.max(0, m.valNoPPK - m.depNoPPK);
+      const baseH = Math.max(4, Math.round((baseV / maxVal) * 114));
+      const profH = profV > 0 ? Math.max(3, Math.round((profV / maxVal) * 114)) : 0;
+      h += '<div class="bcol' + (sel ? ' sel' : '') + '" data-a="selMonth" data-i="' + idx + '">'
+        + '<div class="bstack">'
+        + (profH ? '<div class="bprof" style="height:' + profH + 'px"></div>' : '')
+        + '<div class="bbase" style="height:' + baseH + 'px"></div>'
+        + '</div><span class="blbl">' + m.short + '</span></div>';
+    }
+  });
+  h += '</div><div class="hint" style="margin-top:10px;display:flex;gap:14px;justify-content:center">'
+    + '<span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--accent);vertical-align:-1px"></i> Wpłaty</span>'
+    + '<span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--ok);vertical-align:-1px"></i> Zysk</span>'
+    + '<span>Dotknij słupek</span></div></div>';
+
+  // Pie / Donut Chart of active pillars
+  h += '<div class="sec"><h2>Struktura portfela</h2><button data-a="tab" data-v="set">Filary ›</button></div>';
+  h += '<div class="card">' + renderPieChart(ys.pillarVals) + '</div>';
+
+  // Pillars list
+  h += '<div class="card" style="padding:4px 15px">';
+  ys.pillarVals.forEach(p => {
+    h += '<div class="row">'
+      + '<div class="ico" style="background:' + tint(p.color) + '">' + esc(p.emoji) + '</div>'
+      + '<div class="nm"><b>' + esc(p.name) + '</b><small>Wpłaty: ' + money(p.cumDep) + ' · Zysk: <span style="color:' + (p.profit>=0?'var(--ok)':'var(--bad)') + '">' + (p.profit>=0?'+':'') + money(p.profit) + '</span></small></div>'
+      + '<div class="amt">' + money(p.val) + '</div></div>';
+  });
+  h += '</div>';
+
+  // History of movements in this year
+  const moves = S.wealthMoves.filter(m => m.ym.startsWith(String(y) + '-')).sort((a,b) => b.date.localeCompare(a.date)).slice(0, 20);
+  h += '<div class="sec"><h2>Ostatnie ruchy (' + y + ')</h2></div>';
+  if(!moves.length){
+    h += '<div class="card"><div class="empty" style="padding:18px">Brak ruchów w ' + y + ' r. Kliknij <b>＋ Wpłata</b> albo <b>📊 Wpisz mies.</b>, aby uzupełnić dane od Stycznia.</div></div>';
+  }else{
+    h += '<div class="card" style="padding:4px 15px">';
+    moves.forEach(mv => {
+      const p = pillarById(mv.pillarId) || {name:'Filar', emoji:'💰', color:'#6C5CE7'};
+      const extra = mv.toCycle ? ' · → konto bieżące' : (mv.fromCycle ? ' · z cyklu' : '');
+      h += '<button class="row" data-a="editMove" data-id="' + esc(mv.id) + '">'
+        + '<div class="ico" style="background:' + tint(p.color) + '">' + esc(p.emoji) + '</div>'
+        + '<div class="nm"><b>' + esc(mv.note || p.name) + '</b><small>' + fmtShortDate(mv.date) + ' · ' + esc(p.name) + extra + '</small></div>'
+        + '<div class="amt" style="color:' + (mv.amount>=0?'var(--ok)':'var(--bad)') + '">' + (mv.amount>=0?'+':'−') + money(Math.abs(mv.amount)) + '</div></button>';
+    });
+    h += '</div>';
+  }
+  return h;
+}
+
+function renderPieChart(pillars){
+  const pos = pillars.filter(p => p.val > 0);
+  const total = sum(pos.map(p => p.val));
+  if(total <= 0){
+    return '<div class="empty" style="padding:16px">Wpisz pierwsze oszczędności, aby zobaczyć wykres portfela.</div>';
+  }
+  const R = 54, C = 2 * Math.PI * R;
+  let offset = 0;
+  const circles = pos.map(p => {
+    const frac = p.val / total;
+    const len = frac * C;
+    const svg = '<circle cx="70" cy="70" r="' + R + '" fill="none" stroke="' + p.color + '" stroke-width="22" stroke-dasharray="' + len.toFixed(2) + ' ' + C.toFixed(2) + '" stroke-dashoffset="' + (-offset).toFixed(2) + '"/>';
+    offset += len;
+    return svg;
+  }).join('');
+
+  const leg = pos.map(p => {
+    const pct = Math.round((p.val / total) * 100);
+    return '<div class="pie-item"><span class="pie-dot" style="background:' + p.color + '"></span>'
+      + '<span>' + esc(p.emoji) + ' ' + esc(p.name) + ' <span class="hint">(' + pct + '%)</span></span>'
+      + '<b>' + money0(p.val) + '</b></div>';
+  }).join('');
+
+  return '<div class="pie-wrap">'
+    + '<svg width="140" height="140" viewBox="0 0 140 140" style="transform:rotate(-90deg);flex:none">' + circles + '</svg>'
+    + '<div class="pie-leg">' + leg + '</div></div>';
+}
+
+function vSettings(){
+  let h = topbar('Ustawienia', 'none');
+
+  // Cloud status card
+  h += '<div class="sec" style="margin-top:4px"><h2>Chmura i synchronizacja</h2></div><div class="card">';
+  if(CLOUD_READY && session){
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px">'
+      + '<div><b style="font-size:14.5px">☁️ Połączono z Supabase</b><div class="hint">' + esc(session.user.email) + (lastSyncAt ? ' · ' + lastSyncAt.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}) : '') + '</div></div></div>'
+      + '<div style="display:flex;gap:8px"><button class="btn ghost" style="flex:1" data-a="manualSync">🔄 Synchronizuj</button>'
+      + '<button class="btn bad" style="flex:1" data-a="logout">🚪 Wyloguj</button></div>';
+  }else{
+    h += '<b style="font-size:14.5px">💾 Tryb lokalny (na tym telefonie)</b>'
+      + '<div class="hint" style="margin-top:4px">Aby włączyć automatyczny zapis w chmurze, wklej dane ze swojego projektu Supabase do pliku <b>config.js</b> na GitHubie.</div>';
+  }
+  h += '</div>';
+
+  // Theme & Accents
+  h += '<div class="sec"><h2>Wygląd</h2></div><div class="card" style="padding:4px 15px">'
+    + '<div class="row"><div class="nm"><b>Motyw</b></div><div class="seg">'
+    + [['auto','Auto'],['light','Jasny'],['dark','Ciemny']].map(t =>
+      '<button data-a="setTheme" data-v="' + t[0] + '" class="' + (S.theme===t[0]?'on':'') + '">' + t[1] + '</button>'
+    ).join('') + '</div></div>'
+    + '<div class="row"><div class="nm"><b>Kolor</b></div><div class="dots">'
+    + ACCENTS.map((a,i) => '<button data-a="setAccent" data-v="' + i + '" class="' + (S.accent===i?'on':'') + '" style="background:' + a[0] + '" title="' + a[2] + '"></button>').join('')
+    + '</div></div></div>';
+
+  // Budget & cycle params
+  h += '<div class="sec"><h2>Budżet i cykl wypłaty</h2></div><div class="card" style="padding:4px 15px">'
+    + '<button class="row" data-a="editParams"><div class="ico" style="background:' + tint('#6C5CE7') + '">📅</div>'
+    + '<div class="nm"><b>Dzień wypłaty i limity</b><small>Cykl od ' + S.payday + '. · Jedzenie ' + money0(S.budgets.food) + ' · Zachcianki ' + money0(S.budgets.fun) + ' · Nagłe ' + money0(S.budgets.emerg) + '</small></div>'
+    + '<span style="color:var(--muted);font-size:18px">›</span></button></div>';
+
+  // Recurring bills configurator
+  h += '<div class="sec"><h2>Opłaty cykliczne</h2><button data-a="addRec">+ Dodaj</button></div><div class="card" style="padding:4px 15px">';
+  S.recurring.forEach(r => {
+    h += '<div class="row">'
+      + '<button class="ico" style="background:' + tint('#0984e3') + '" data-a="editRec" data-id="' + esc(r.id) + '">' + esc(r.emoji) + '</button>'
+      + '<button class="nm" data-a="editRec" data-id="' + esc(r.id) + '"><b>' + esc(r.name) + '</b><small>' + (r.mode==='fixed'?'🔒 Stała kwota':'📊 Zmienna kwota') + (r.plan>0?' · plan '+money0(r.plan):'') + '</small></button>'
+      + '<button class="toggle' + (r.enabled?' on':'') + '" data-a="toggleRec" data-id="' + esc(r.id) + '"></button></div>';
+  });
+  h += '</div>';
+
+  // Portfolio pillars configurator
+  h += '<div class="sec"><h2>Filary portfela i skarbonki</h2><button data-a="addPillar">+ Dodaj</button></div><div class="card" style="padding:4px 15px">';
+  S.pillars.forEach(p => {
+    h += '<div class="row">'
+      + '<button class="ico" style="background:' + tint(p.color) + '" data-a="editPillar" data-id="' + esc(p.id) + '">' + esc(p.emoji) + '</button>'
+      + '<button class="nm" data-a="editPillar" data-id="' + esc(p.id) + '"><b>' + esc(p.name) + '</b><small>' + (p.countsToGoal?'Liczy się do celu · ':'') + (p.isPPK?'PPK (poza stopą zwrotu)':'W wykresie majątku') + '</small></button>'
+      + '<button class="toggle' + (p.enabled?' on':'') + '" data-a="togglePillar" data-id="' + esc(p.id) + '"></button></div>';
+  });
+  h += '</div>';
+
+  // Backup & reset
+  h += '<div class="sec"><h2>Kopia zapasowa</h2></div><div class="card">'
+    + '<div style="display:flex;gap:8px"><button class="btn ghost" style="flex:1" data-a="exportJSON">⬇ Eksport JSON</button>'
+    + '<button class="btn ghost" style="flex:1" data-a="importJSON">⬆ Import JSON</button></div>'
+    + '<button class="btn bad full" style="margin-top:10px" data-a="resetAll">🧹 Wyczyść dane do zera</button></div>';
+  return h;
+}
+
+function render(){
+  applyTheme();
+  const views = { home:vHome, exp:vExpenses, cycle:vCycle, wealth:vWealth, set:vSettings };
+  $('#app').innerHTML = (views[view.tab] || vHome)();
+  updateSyncPill();
+
+  const navHtml = ''
+    + navBtn('home','🏠','Start')
+    + navBtn('exp','🧾','Wydatki')
+    + '<button class="plus" data-a="addExp" aria-label="Dodaj wydatek">＋</button>'
+    + navBtn('cycle','📅','Cykl')
+    + navBtn('wealth','📈','Majątek')
+    + navBtn('set','⚙️','Ustaw.');
+  $('#nav').innerHTML = navHtml;
+}
+function navBtn(id, ico, lbl){
+  return '<button data-a="tab" data-v="' + id + '" class="' + (view.tab===id?'on':'') + '"><span>' + ico + '</span>' + lbl + '</button>';
+}
+
+/* ==================== SHEET & TOAST ==================== */
+let sSave = null, sDel = null;
+function openSheet(o){
+  $('#sheetT').textContent = o.title;
+  $('#sheetB').innerHTML = o.body;
+  $('#sheetOk').textContent = o.ok || 'Zapisz';
+  $('#sheetDel').style.display = o.del ? '' : 'none';
+  sSave = o.save || null;
+  sDel = o.del || null;
+  $('#sheet').classList.add('open');
+  document.body.classList.add('so');
+  if(o.onOpen) o.onOpen();
+  setTimeout(() => {
+    const inp = $('#sheetB input.in:not([type=date]):not([type=month])');
+    if(inp) inp.focus();
+  }, 240);
+}
+function closeSheet(){
+  $('#sheet').classList.remove('open');
+  document.body.classList.remove('so');
+}
+function toast(msg, isBad){
+  const el = $('#toast');
+  el.textContent = msg;
+  el.classList.toggle('bad', !!isBad);
+  el.classList.add('on');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('on'), 2400);
+}
+const val = id => ($('#'+id) || {}).value || '';
+const picked = id => { const b = $('#'+id+' .on'); return b ? b.dataset.v : ''; };
+function chips(id, items, sel){
+  return '<div class="chips" id="' + id + '">' + items.map(it =>
+    '<button type="button" data-a="chip" data-v="' + esc(it.v) + '" class="' + (it.v===sel?'on':'') + '">' + it.t + '</button>'
+  ).join('') + '</div>';
+}
+
+/* ==================== FORMS ==================== */
+function openExpenseSheet(id, preCat, preAmt, preNote, inboxId){
+  const e = id ? S.expenses.find(x => x.id === id) : null;
+  const defCat = e ? e.cat : (preCat || (view.tab === 'home' && ['food','fun','emerg'].includes(view.startPill) ? view.startPill : 'food'));
+  const bounds = cycleBounds(view.ck, S.payday);
+  const t = todayStr();
+  const defDate = e ? e.date : ((t >= bounds.start && t <= bounds.end) ? t : bounds.start);
+
+  const recVars = S.recurring.filter(r => r.enabled && r.mode === 'variable');
+  const catItems = [
+    {v:'food', t:'🍽️ Jedzenie'},
+    {v:'fun', t:'🎉 Zachcianki'},
+    {v:'emerg', t:'🚨 Nagłe'}
+  ].concat(recVars.map(r => ({v:r.id, t:esc(r.emoji)+' '+esc(r.name)})));
+
+  const recObj = S.recurring.find(r => r.id === defCat);
+  let isShared = e ? !!e.shared : (defCat === 'food' || (recObj && recObj.defaultShared));
+  const initAmt = e ? (e.shared && e.fullAmount ? e.fullAmount : e.amount) : (preAmt || '');
+
+  openSheet({
+    title: e ? 'Edytuj wydatek' : 'Nowy wydatek',
+    body: '<label class="fl">Kwota z paragonu (zł)</label>'
+      + '<input class="in big" id="f_amt" inputmode="decimal" placeholder="0,00" value="' + initAmt + '">'
+      + '<button type="button" class="vole-box' + (isShared?' on':'') + '" id="f_vole">'
+      + '<div class="vole-art" id="f_vole_art">' + (isShared ? volesCuddleSVG() : volesApartSVG()) + '</div>'
+      + '<div class="vole-txt"><b>Wspólne zakupy (÷2)</b><small id="f_vole_sub"></small></div>'
+      + '<div class="sw-knob"></div></button>'
+      + '<label class="fl">Kategoria</label>' + chips('f_cat', catItems, defCat)
+      + '<label class="fl">Opis (opcjonalnie)</label>'
+      + '<input class="in" id="f_note" value="' + esc(e ? e.note : (preNote||'')) + '" placeholder="np. Biedronka, kino, paliwo">'
+      + '<label class="fl">Data</label>'
+      + '<input class="in" id="f_date" type="date" value="' + defDate + '">',
+    onOpen(){
+      const updVole = () => {
+        const box = $('#f_vole');
+        if(!box) return;
+        const on = box.classList.contains('on');
+        $('#f_vole_art').innerHTML = on ? volesCuddleSVG() : volesApartSVG();
+        const a = parseNum(val('f_amt'));
+        $('#f_vole_sub').textContent = on
+          ? (a > 0 ? 'Twoja połowa: ' + money(a/2) + ' (z ' + money(a) + ')' : 'Norniki dzielą paragon na pół!')
+          : 'Cała kwota idzie na Twój budżet';
+      };
+      updVole();
+      $('#f_vole').addEventListener('click', () => { $('#f_vole').classList.toggle('on'); updVole(); });
+      $('#f_amt').addEventListener('input', updVole);
+      $('#f_cat').addEventListener('click', ev => {
+        const b = ev.target.closest('button'); if(!b) return;
+        const rc = S.recurring.find(x => x.id === b.dataset.v);
+        const autoOn = b.dataset.v === 'food' || (rc && rc.defaultShared);
+        if(!e){ $('#f_vole').classList.toggle('on', !!autoOn); updVole(); }
+      });
+    },
+    save(){
+      const raw = parseNum(val('f_amt'));
+      if(!(raw > 0)){ toast('Wpisz kwotę większą od zera', true); return false; }
+      const shared = $('#f_vole').classList.contains('on');
+      const finalAmt = shared ? r2(raw / 2) : raw;
+      const date = val('f_date') || todayStr();
+      const cat = picked('f_cat') || 'food';
+      const ck = cycleKeyForDate(date, S.payday);
+      const rec = {
+        id: e ? e.id : uid(),
+        date, ck, cat,
+        amount: finalAmt,
+        fullAmount: shared ? raw : finalAmt,
+        shared,
+        note: val('f_note').trim(),
+        sourcePillar: e ? (e.sourcePillar || null) : null
+      };
+      if(e) Object.assign(e, rec);
+      else S.expenses.push(rec);
+      view.ck = ck;
+      if(inboxId) markInboxDone(inboxId);
+      saveLocal();
+      closeSheet();
+      render();
+      toast(e ? 'Zapisano zmiany' : (shared ? 'Dodano połowę: ' + money(finalAmt) : 'Dodano: ' + money(finalAmt)));
+    },
+    del: e ? () => {
+      S.expenses = S.expenses.filter(x => x.id !== e.id);
+      saveLocal(); closeSheet(); render(); toast('Usunięto wydatek');
+    } : null
+  });
+}
+
+function openShiftBudgetSheet(){
+  openSheet({
+    title: 'Przerzuć środki między kopertami',
+    body: '<label class="fl">Kierunek przerzutu</label>'
+      + chips('f_dir', [
+        {v:'emerg_fun', t:'🚨 Nagłe → 🎉 Zachcianki'},
+        {v:'fun_emerg', t:'🎉 Zachcianki → 🚨 Nagłe'}
+      ], 'emerg_fun')
+      + '<label class="fl">Kwota (zł)</label>'
+      + '<input class="in big" id="f_amt" inputmode="decimal" placeholder="100">'
+      + '<div class="hint" style="margin-top:8px">Łączny budżet miesiąca pozostaje identyczny — przenosisz jedynie wolną pulę między Zachciankami a Coś nagłego.</div>',
+    save(){
+      const a = parseNum(val('f_amt'));
+      if(!(a > 0)){ toast('Wpisz kwotę', true); return false; }
+      const dir = picked('f_dir');
+      const cyc = getCycle(view.ck);
+      cyc.transfers.push({
+        id: uid(),
+        from: dir === 'emerg_fun' ? 'emerg' : 'fun',
+        to: dir === 'emerg_fun' ? 'fun' : 'emerg',
+        amount: a,
+        date: todayStr()
+      });
+      saveLocal(); closeSheet(); render(); toast('Przerzucono ' + money(a));
+    }
+  });
+}
+
+function openIncomeSheet(id){
+  const cyc = getCycle(view.ck);
+  const inc = id ? cyc.incomes.find(x => x.id === id) : null;
+  openSheet({
+    title: inc ? 'Edytuj wpływ' : 'Nowy wpływ w cyklu',
+    body: '<label class="fl">Nazwa</label><input class="in" id="f_name" value="' + esc(inc ? inc.name : '') + '" placeholder="np. Wypłata, Premia, Zwrot">'
+      + '<label class="fl">Kwota (zł)</label><input class="in big" id="f_amt" inputmode="decimal" value="' + (inc && inc.amount ? inc.amount : '') + '" placeholder="0,00">'
+      + '<label class="fl">Ikona</label><input class="in" id="f_ico" value="' + esc(inc ? inc.emoji : '💵') + '" maxlength="4">',
+    save(){
+      const name = val('f_name').trim();
+      if(!name){ toast('Podaj nazwę', true); return false; }
+      const a = val('f_amt').trim() === '' ? 0 : parseNum(val('f_amt'));
+      if(!(a >= 0)){ toast('Zła kwota', true); return false; }
+      const emoji = val('f_ico').trim() || '💵';
+      if(inc){ inc.name = name; inc.amount = a; inc.emoji = emoji; }
+      else cyc.incomes.push({id:uid(), name, amount:a, emoji});
+      saveLocal(); closeSheet(); render(); toast('Zapisano wpływ');
+    },
+    del: inc ? () => {
+      cyc.incomes = cyc.incomes.filter(x => x.id !== inc.id);
+      saveLocal(); closeSheet(); render(); toast('Usunięto wpływ');
+    } : null
+  });
+}
+
+function openFixedBillSheet(recId){
+  const r = S.recurring.find(x => x.id === recId); if(!r) return;
+  const cyc = getCycle(view.ck);
+  const cur = cyc.paidFixed[recId] || { paid:false, amount:r.plan };
+  openSheet({
+    title: r.emoji + ' ' + r.name + ' (' + cycleLabel(view.ck) + ')',
+    body: '<label class="fl">Kwota w tym cyklu (zł)</label><input class="in big" id="f_amt" inputmode="decimal" value="' + (cur.amount || '') + '" placeholder="0,00">'
+      + '<div class="hint" style="margin-top:8px">Zapisanie od razu oznaczy tę opłatę jako opłaconą w tym cyklu.</div>',
+    save(){
+      const a = parseNum(val('f_amt'));
+      if(!(a >= 0)){ toast('Wpisz poprawną kwotę', true); return false; }
+      cyc.paidFixed[recId] = { paid: true, amount: a };
+      saveLocal(); closeSheet(); render(); toast('Opłacono: ' + money(a));
+    },
+    del: cur.paid ? () => {
+      cyc.paidFixed[recId] = { paid: false, amount: r.plan };
+      saveLocal(); closeSheet(); render(); toast('Cofnięto opłacenie');
+    } : null
+  });
+}
+
+function openWealthInSheet(){
+  const ps = activePillars();
+  if(!ps.length){ toast('Włącz przynajmniej jeden filar w Ustawieniach', true); return; }
+  openSheet({
+    title: '＋ Wpłata na majątek',
+    body: '<label class="fl">Kwota wpłaty (zł)</label><input class="in big" id="f_amt" inputmode="decimal" placeholder="0,00">'
+      + '<label class="fl">Na jaki filar / skarbonkę?</label>' + chips('f_p', ps.map(p => ({v:p.id, t:esc(p.emoji)+' '+esc(p.name)})), ps[0].id)
+      + '<label class="fl">Źródło wpłaty</label>' + chips('f_src', [{v:'cycle', t:'💳 Z bieżącego cyklu (' + cycleLabel(view.ck) + ')'},{v:'outside', t:'📥 Spoza cyklu / historyczna'}], 'cycle')
+      + '<label class="fl">Opis</label><input class="in" id="f_note" placeholder="np. odłożone po wypłacie">'
+      + '<label class="fl">Data</label><input class="in" id="f_date" type="date" value="' + todayStr() + '">',
+    save(){
+      const a = parseNum(val('f_amt'));
+      if(!(a > 0)){ toast('Wpisz kwotę > 0', true); return false; }
+      const d = val('f_date') || todayStr();
+      const pid = picked('f_p') || ps[0].id;
+      const fromCyc = picked('f_src') === 'cycle' ? view.ck : null;
+      S.wealthMoves.push({
+        id: uid(), date: d, ym: d.slice(0,7), pillarId: pid,
+        amount: a, note: val('f_note').trim() || 'Wpłata',
+        fromCycle: fromCyc, toCycle: null
+      });
+      saveLocal(); closeSheet(); render(); toast('Wpłacono +' + money(a));
+    }
+  });
+}
+
+function openWealthOutSheet(){
+  const ps = activePillars();
+  if(!ps.length){ toast('Brak aktywnych filarów', true); return; }
+  const ys = yearSummary(view.year);
+  const balMap = {}; ys.pillarVals.forEach(p => balMap[p.id] = p.val);
+  openSheet({
+    title: '− Wyjmij z oszczędności',
+    body: '<label class="fl">Skąd wyjmujesz?</label>' + chips('f_p', ps.map(p => ({v:p.id, t:esc(p.emoji)+' '+esc(p.name)+' ('+money0(balMap[p.id]||0)+')'})), ps[0].id)
+      + '<label class="fl">Kwota do wyjęcia (zł)</label><input class="in big" id="f_amt" inputmode="decimal" placeholder="0,00">'
+      + '<label class="fl">Gdzie idą te pieniądze? (domknięcie bilansu)</label>'
+      + chips('f_dest', [
+        {v:'cycle', t:'💳 Na konto bieżące (do cyklu)'},
+        {v:'expense', t:'🧾 Bezpośredni wydatek ze skarbonki'},
+        {v:'transfer', t:'🔄 Transfer na inny filar'}
+      ], 'cycle')
+      + '<div id="f_tr_wrap" style="display:none"><label class="fl">Filar docelowy</label>' + chips('f_p2', ps.map(p => ({v:p.id, t:esc(p.emoji)+' '+esc(p.name)})), (ps[1]||ps[0]).id) + '</div>'
+      + '<label class="fl">Powód / opis</label><input class="in" id="f_note" placeholder="np. wakacje, opony, mechanik">'
+      + '<label class="fl">Data</label><input class="in" id="f_date" type="date" value="' + todayStr() + '">',
+    onOpen(){
+      $('#f_dest').addEventListener('click', () => {
+        setTimeout(() => { $('#f_tr_wrap').style.display = picked('f_dest') === 'transfer' ? '' : 'none'; }, 10);
+      });
+    },
+    save(){
+      const a = parseNum(val('f_amt'));
+      if(!(a > 0)){ toast('Wpisz kwotę > 0', true); return false; }
+      const d = val('f_date') || todayStr();
+      const pid = picked('f_p') || ps[0].id;
+      const dest = picked('f_dest') || 'cycle';
+      const note = val('f_note').trim() || 'Wypłata';
+
+      if(dest === 'transfer'){
+        const pid2 = picked('f_p2');
+        if(!pid2 || pid2 === pid){ toast('Wybierz inny filar docelowy', true); return false; }
+        const tid = uid();
+        S.wealthMoves.push({id:uid(), date:d, ym:d.slice(0,7), pillarId:pid, amount:-a, note:'Transfer → ' + (pillarById(pid2)||{}).name, transferId:tid});
+        S.wealthMoves.push({id:uid(), date:d, ym:d.slice(0,7), pillarId:pid2, amount:a, note:'Transfer z ' + (pillarById(pid)||{}).name, transferId:tid});
+        saveLocal(); closeSheet(); render(); toast('Przeniesiono ' + money(a));
+      }else if(dest === 'expense'){
+        const ck = cycleKeyForDate(d, S.payday);
+        S.wealthMoves.push({id:uid(), date:d, ym:d.slice(0,7), pillarId:pid, amount:-a, note:'Wydatek: ' + note});
+        S.expenses.push({id:uid(), date:d, ck, cat:'emerg', amount:a, fullAmount:a, shared:false, note, sourcePillar:pid});
+        saveLocal(); closeSheet(); render(); toast('Zapisano wydatek ze skarbonki');
+      }else{
+        S.wealthMoves.push({id:uid(), date:d, ym:d.slice(0,7), pillarId:pid, amount:-a, note, toCycle:view.ck});
+        saveLocal(); closeSheet(); render(); toast('Przelano +' + money(a) + ' do bilansu cyklu');
+      }
+    }
+  });
+}
+
+function openMonthEntrySheet(mNum){
+  const ps = activePillars();
+  const y = view.year;
+  const ym = y + '-' + String(mNum).padStart(2,'0');
+  const mName = MONTHS_PL[mNum - 1] + ' ' + y;
+  let body = '<div class="hint" style="margin-bottom:10px">Uzupełnij wpłatę (może być z minusem) oraz realną wartość na koniec miesiąca z banku/maklera — zysk policzy się sam.</div>';
+  body += '<label class="fl">Tryb wyceny końcowej</label>' + chips('f_vmode', [{v:'val', t:'🏦 Stan konta na koniec'},{v:'prof', t:'📈 Sam zysk / odsetki'}], 'val');
+  ps.forEach(p => {
+    const pm = pillarMonthMetrics(p.id, ym);
+    const curVal = S.valuations[ym] && S.valuations[ym][p.id] != null ? S.valuations[ym][p.id] : '';
+    body += '<div style="margin-top:12px;padding:12px;border-radius:16px;background:var(--track)">'
+      + '<b style="font-size:14px">' + esc(p.emoji) + ' ' + esc(p.name) + '</b>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">'
+      + '<div><span class="hint">Wpłata w ' + MONTHS_SH[mNum-1] + '</span><input class="in" style="background:var(--card);padding:9px" id="md_' + p.id + '" inputmode="decimal" value="' + (pm.monthDep || '') + '" placeholder="0"></div>'
+      + '<div><span class="hint mval-lbl">Stan na koniec</span><input class="in" style="background:var(--card);padding:9px" id="mv_' + p.id + '" inputmode="decimal" value="' + curVal + '" placeholder="opcjonalnie"></div>'
+      + '</div></div>';
+  });
+
+  openSheet({
+    title: '📊 Majątek: ' + mName,
+    body,
+    onOpen(){
+      $('#f_vmode').addEventListener('click', () => {
+        setTimeout(() => {
+          const isP = picked('f_vmode') === 'prof';
+          document.querySelectorAll('.mval-lbl').forEach(el => el.textContent = isP ? 'Zysk / odsetki (±)' : 'Stan na koniec');
+        }, 10);
+      });
+    },
+    save(){
+      const isProf = picked('f_vmode') === 'prof';
+      const endDate = ym + '-28';
+      ps.forEach(p => {
+        const depStr = val('md_' + p.id).trim();
+        const valStr = val('mv_' + p.id).trim();
+        if(depStr !== ''){
+          const targetDep = parseNum(depStr);
+          if(isFinite(targetDep)){
+            const curMonthMoves = S.wealthMoves.filter(m => m.pillarId === p.id && m.ym === ym);
+            const curSum = r2(sum(curMonthMoves.map(m => m.amount)));
+            const diff = r2(targetDep - curSum);
+            if(Math.abs(diff) >= 0.01){
+              S.wealthMoves.push({
+                id: uid(), date: endDate, ym, pillarId: p.id,
+                amount: diff, note: 'Wpis miesięczny (' + MONTHS_SH[mNum-1] + ')', isManualMonth: true
+              });
+            }
+          }
+        }
+        if(valStr !== ''){
+          const num = parseNum(valStr);
+          if(isFinite(num)){
+            if(!S.valuations[ym]) S.valuations[ym] = {};
+            if(isProf){
+              const pmNow = pillarMonthMetrics(p.id, ym);
+              S.valuations[ym][p.id] = r2(pmNow.cumDep + num);
+            }else{
+              S.valuations[ym][p.id] = num;
+            }
+          }
+        }
+      });
+      view.selMonthIdx = mNum - 1;
+      saveLocal(); closeSheet(); render(); toast('Zapisano ' + mName);
+    }
+  });
+}
+
+function openEditMoveSheet(id){
+  const mv = S.wealthMoves.find(x => x.id === id); if(!mv) return;
+  openSheet({
+    title: 'Edytuj ruch',
+    body: '<label class="fl">Kwota (± zł)</label><input class="in big" id="f_amt" inputmode="decimal" value="' + mv.amount + '">'
+      + '<label class="fl">Opis</label><input class="in" id="f_note" value="' + esc(mv.note||'') + '">'
+      + '<label class="fl">Data</label><input class="in" id="f_date" type="date" value="' + mv.date + '">',
+    save(){
+      const a = parseNum(val('f_amt'));
+      if(!isFinite(a) || a === 0){ toast('Wpisz kwotę różną od zera', true); return false; }
+      mv.amount = a; mv.note = val('f_note').trim();
+      mv.date = val('f_date') || mv.date; mv.ym = mv.date.slice(0,7);
+      saveLocal(); closeSheet(); render(); toast('Zapisano ruch');
+    },
+    del(){
+      S.wealthMoves = S.wealthMoves.filter(x => x.id !== id && (!mv.transferId || x.transferId !== mv.transferId));
+      saveLocal(); closeSheet(); render(); toast('Usunięto ruch');
+    }
+  });
+}
+
+function openEditGoalSheet(){
+  const y = String(view.year);
+  openSheet({
+    title: '🎯 Cel oszczędnościowy ' + y,
+    body: '<label class="fl">Kwota celu na koniec ' + y + ' (zł)</label>'
+      + '<input class="in big" id="f_goal" inputmode="decimal" value="' + (S.goals[y] || 20000) + '">'
+      + '<div class="hint" style="margin-top:8px">Każdy rok ma swój osobny cel. Aplikacja sama dzieli brakującą kwotę przez liczbę pozostałych miesięcy.</div>',
+    save(){
+      const g = parseNum(val('f_goal'));
+      if(!(g > 0)){ toast('Podaj kwotę > 0', true); return false; }
+      S.goals[y] = g;
+      saveLocal(); closeSheet(); render(); toast('Zapisano cel na ' + y);
+    }
+  });
+}
+
+function openParamsSheet(){
+  openSheet({
+    title: 'Parametry cyklu i budżetów',
+    body: '<label class="fl">Dzień wypłaty (1–28)</label><input class="in" id="p_day" inputmode="numeric" value="' + S.payday + '">'
+      + '<label class="fl">Miesięczny budżet: Jedzenie (zł)</label><input class="in" id="p_food" inputmode="decimal" value="' + S.budgets.food + '">'
+      + '<label class="fl">Tygodniówki T1 / T2 / T3 / T4 / T5 (po przecinku)</label><input class="in" id="p_wks" value="' + S.budgets.weeks.join(', ') + '">'
+      + '<label class="fl">Miesięczny budżet: Zachcianki + piąteczki (zł)</label><input class="in" id="p_fun" inputmode="decimal" value="' + S.budgets.fun + '">'
+      + '<label class="fl">Miesięczny budżet: Coś nagłego (zł)</label><input class="in" id="p_em" inputmode="decimal" value="' + S.budgets.emerg + '">',
+    save(){
+      const pd = Math.max(1, Math.min(28, parseInt(val('p_day'), 10) || 10));
+      const food = Math.max(0, parseNum(val('p_food')) || 0);
+      const fun = Math.max(0, parseNum(val('p_fun')) || 0);
+      const em = Math.max(0, parseNum(val('p_em')) || 0);
+      const wks = val('p_wks').split(',').map(x => Math.max(0, parseNum(x) || 0));
+      if(wks.length === 5) S.budgets.weeks = wks;
+      S.payday = pd; S.budgets.food = food; S.budgets.fun = fun; S.budgets.emerg = em;
+      view.ck = currentCycleKey(S.payday);
+      saveLocal(); closeSheet(); render(); toast('Zapisano ustawienia');
+    }
+  });
+}
+
+function openRecSheet(id){
+  const r = id ? S.recurring.find(x => x.id === id) : null;
+  openSheet({
+    title: r ? 'Edytuj opłatę cykliczną' : 'Nowa opłata cykliczna',
+    body: '<label class="fl">Nazwa</label><input class="in" id="r_n" value="' + esc(r?r.name:'') + '" placeholder="np. Siłownia, Internet">'
+      + '<label class="fl">Ikona (emoji)</label><input class="in" id="r_e" value="' + esc(r?r.emoji:'🔄') + '" maxlength="4">'
+      + '<label class="fl">Rodzaj kwoty</label>' + chips('r_m', [{v:'fixed',t:'🔒 Stała co miesiąc'},{v:'variable',t:'📊 Zmienna (dopisuję)'}], r?r.mode:'variable')
+      + '<label class="fl">Planowana kwota (zł, 0 = bez planu)</label><input class="in" id="r_p" inputmode="decimal" value="' + (r&&r.plan?r.plan:'') + '" placeholder="0">'
+      + '<label class="fl">Domyślnie wspólne (÷2)?</label>' + chips('r_s', [{v:'no',t:'Nie'},{v:'yes',t:'Tak (norniki ÷2)'}], (r&&r.defaultShared)?'yes':'no'),
+    save(){
+      const name = val('r_n').trim(); if(!name){ toast('Podaj nazwę', true); return false; }
+      const obj = {
+        name, emoji: val('r_e').trim() || '🔄',
+        mode: picked('r_m') || 'variable',
+        plan: Math.max(0, parseNum(val('r_p')) || 0),
+        defaultShared: picked('r_s') === 'yes',
+        enabled: r ? r.enabled : true
+      };
+      if(r) Object.assign(r, obj);
+      else S.recurring.push(Object.assign({id:'rec_'+uid()}, obj));
+      saveLocal(); closeSheet(); render(); toast('Zapisano opłatę');
+    },
+    del: r ? () => {
+      S.recurring = S.recurring.filter(x => x.id !== id);
+      saveLocal(); closeSheet(); render(); toast('Usunięto opłatę');
+    } : null
+  });
+}
+
+function openPillarSheet(id){
+  const p = id ? S.pillars.find(x => x.id === id) : null;
+  openSheet({
+    title: p ? 'Edytuj filar / skarbonkę' : 'Nowy filar / skarbonka',
+    body: '<label class="fl">Nazwa</label><input class="in" id="pl_n" value="' + esc(p?p.name:'') + '" placeholder="np. Skarbonka: Auto">'
+      + '<label class="fl">Ikona (emoji)</label><input class="in" id="pl_e" value="' + esc(p?p.emoji:'🐷') + '" maxlength="4">'
+      + '<label class="fl">Kolor na wykresie</label>' + chips('pl_c', PILLAR_COLORS.map(c => ({v:c, t:'<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:'+c+';vertical-align:-3px"></span>'})), p?p.color:PILLAR_COLORS[3])
+      + '<label class="fl">Czy liczy się do Celu rocznego?</label>' + chips('pl_g', [{v:'yes',t:'✅ Tak'},{v:'no',t:'Nie (osobna skarbonka)'}], (p&&p.countsToGoal)?'yes':'no'),
+    save(){
+      const name = val('pl_n').trim(); if(!name){ toast('Podaj nazwę', true); return false; }
+      const obj = {
+        name, emoji: val('pl_e').trim() || '🐷',
+        color: picked('pl_c') || PILLAR_COLORS[0],
+        countsToGoal: picked('pl_g') === 'yes',
+        isPPK: p ? !!p.isPPK : false,
+        enabled: p ? p.enabled : true
+      };
+      if(p) Object.assign(p, obj);
+      else S.pillars.push(Object.assign({id:'pil_'+uid()}, obj));
+      saveLocal(); closeSheet(); render(); toast('Zapisano filar');
+    },
+    del: (p && p.id !== 'sav') ? () => {
+      S.pillars = S.pillars.filter(x => x.id !== id);
+      saveLocal(); closeSheet(); render(); toast('Usunięto filar');
+    } : null
+  });
+}
+
+async function markInboxDone(id){
+  inboxItems = inboxItems.filter(x => x.id !== id);
+  if(sb && session && navigator.onLine){
+    try{ await sb.from('inbox_payments').update({ processed: true }).eq('id', id); }catch(e){}
+  }
+}
+
+/* ==================== ACTIONS & EVENTS ==================== */
+const ACTIONS = {
+  tab: d => { view.tab = d.v; render(); window.scrollTo(0,0); },
+  prevCycle: () => { view.ck = shiftCycle(view.ck, -1); render(); },
+  nextCycle: () => { view.ck = shiftCycle(view.ck, 1); render(); },
+  prevYear: () => { view.year--; render(); },
+  nextYear: () => { view.year++; render(); },
+  startPill: d => { view.startPill = d.v; render(); },
+  expFilter: d => { view.expFilter = d.v; render(); },
+  selMonth: d => { view.selMonthIdx = Number(d.i); render(); },
+
+  addExp: d => openExpenseSheet(null, d.cat || null),
+  editExp: d => openExpenseSheet(d.id),
+  shiftBudget: () => openShiftBudgetSheet(),
+
+  settleWeek: d => {
+    const w = Number(d.w), amt = parseFloat(d.amt);
+    const cyc = getCycle(view.ck);
+    cyc.settledWeeks[w] = true;
+    const t = todayStr();
+    S.wealthMoves.push({
+      id: uid(), date: t, ym: t.slice(0,7), pillarId: 'sav',
+      amount: r2(amt), note: 'Nadwyżka z jedzenia (T' + (w+1) + ')',
+      fromCycle: view.ck, toCycle: null
+    });
+    saveLocal(); render(); toast('Przelano +' + money(amt) + ' na Oszczędnościowe!');
+  },
+
+  addIncome: () => openIncomeSheet(null),
+  editIncome: d => openIncomeSheet(d.id),
+  editFixedBill: d => openFixedBillSheet(d.id),
+  toggleFixedBill: d => {
+    const r = S.recurring.find(x => x.id === d.id); if(!r) return;
+    const cyc = getCycle(view.ck);
+    const cur = cyc.paidFixed[d.id];
+    if(cur && cur.paid){
+      cyc.paidFixed[d.id] = { paid: false, amount: cur.amount };
+      saveLocal(); render(); toast('Cofnięto opłacenie');
+    }else if(r.plan > 0){
+      cyc.paidFixed[d.id] = { paid: true, amount: r.plan };
+      saveLocal(); render(); toast('Opłacono: ' + money(r.plan));
+    }else{
+      openFixedBillSheet(d.id);
+    }
+  },
+  toggleVarClosed: d => {
+    const cyc = getCycle(view.ck);
+    cyc.closedVar[d.id] = !cyc.closedVar[d.id];
+    saveLocal(); render();
+  },
+
+  wealthIn: () => openWealthInSheet(),
+  wealthOut: () => openWealthOutSheet(),
+  monthEntry: d => openMonthEntrySheet(Number(d.m) || 1),
+  editMove: d => openEditMoveSheet(d.id),
+  editGoal: () => openEditGoalSheet(),
+
+  setTheme: d => { S.theme = d.v; saveLocal(); render(); },
+  setAccent: d => { S.accent = Number(d.v); saveLocal(); render(); },
+  editParams: () => openParamsSheet(),
+  addRec: () => openRecSheet(null),
+  editRec: d => openRecSheet(d.id),
+  toggleRec: d => { const r = S.recurring.find(x => x.id === d.id); if(r){ r.enabled = !r.enabled; saveLocal(); render(); } },
+  addPillar: () => openPillarSheet(null),
+  editPillar: d => openPillarSheet(d.id),
+  togglePillar: d => { const p = S.pillars.find(x => x.id === d.id); if(p){ p.enabled = !p.enabled; saveLocal(); render(); } },
+
+  approveInbox: d => {
+    const item = inboxItems.find(x => x.id === d.id); if(!item) return;
+    openExpenseSheet(null, 'food', item.amount, item.merchant, item.id);
+  },
+  dismissInbox: async d => {
+    await markInboxDone(d.id);
+    render();
+    toast('Odrzucono płatność');
+  },
+
+  manualSync: () => {
+    if(!CLOUD_READY){ toast('Tryb lokalny — skonfiguruj config.js dla chmury'); return; }
+    pullOrSyncCloud(false);
+  },
+  logout: async () => {
+    if(!sb) return;
+    if(!confirm('Wylogować się z konta na tym urządzeniu?')) return;
+    await sb.auth.signOut();
+    session = null;
+    $('#auth').classList.add('open');
+  },
+
+  exportJSON: () => {
+    const blob = new Blob([JSON.stringify(S, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'budzet-kopia-' + todayStr() + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    toast('Pobrano kopię JSON');
+  },
+  importJSON: () => $('#fileIn').click(),
+  resetAll: () => {
+    if(!confirm('Na pewno wyczyścić wszystkie dane do zera? Tej operacji nie można cofnąć.')) return;
+    S = defaultState();
+    saveLocal();
+    view.ck = currentCycleKey(S.payday);
+    render();
+    toast('Wyczyszczono do zera');
+  },
+
+  chip: (d, el) => {
+    [...el.parentNode.children].forEach(b => b.classList.remove('on'));
+    el.classList.add('on');
+  },
+  sheetClose: closeSheet,
+  sheetOk: () => { if(sSave && sSave() === false) return; },
+  sheetDel: () => { if(sDel) sDel(); }
+};
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-a]');
+  if(!el) return;
+  const fn = ACTIONS[el.dataset.a];
+  if(fn){ e.stopPropagation(); fn(el.dataset, el); }
+});
+
+document.addEventListener('input', e => {
+  if(e.target && e.target.id === 'cycleNote'){
+    getCycle(view.ck).note = e.target.value;
+    saveLocal();
+  }
+});
+
+$('#fileIn').addEventListener('change', e => {
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const parsed = JSON.parse(r.result);
+      if(!parsed || typeof parsed !== 'object') throw 0;
+      if(confirm('Zastąpić obecne dane danymi z kopii zapasowej?')){
+        S = normalizeState(parsed);
+        saveLocal();
+        render();
+        toast('Zaimportowano kopię!');
+      }
+    }catch(err){ toast('Niepoprawny plik kopii JSON', true); }
+    e.target.value = '';
+  };
+  r.readAsText(f);
+});
+
+$('#sheet').addEventListener('keydown', e => {
+  if(e.key === 'Enter' && e.target.tagName === 'INPUT'){
+    e.preventDefault();
+    $('#sheetOk').click();
+  }
+});
+
+// Login button handler
+$('#a_btn').addEventListener('click', async () => {
+  const email = val('a_email').trim();
+  const password = val('a_pass');
+  const errEl = $('#authErr');
+  errEl.style.display = 'none';
+  if(!email || !password){ errEl.textContent = 'Wpisz email i hasło.'; errEl.style.display = 'block'; return; }
+  $('#a_btn').textContent = 'Logowanie...';
+  $('#a_btn').disabled = true;
+  try{
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if(error) throw error;
+    session = data.session;
+    $('#auth').classList.remove('open');
+    render();
+    pullOrSyncCloud(true);
+  }catch(err){
+    errEl.textContent = navigator.onLine ? 'Błędny email lub hasło.' : 'Brak połączenia z internetem.';
+    errEl.style.display = 'block';
+  }finally{
+    $('#a_btn').textContent = 'Zaloguj się';
+    $('#a_btn').disabled = false;
+  }
+});
+$('#a_pass').addEventListener('keydown', e => { if(e.key === 'Enter') $('#a_btn').click(); });
+$('#a_offline').addEventListener('click', () => { $('#auth').classList.remove('open'); render(); });
+
+window.addEventListener('online', () => { if(session) pullOrSyncCloud(true); });
+window.addEventListener('offline', () => { if(CLOUD_READY){ syncState = 'offline'; updateSyncPill(); } });
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && session && navigator.onLine) pullOrSyncCloud(true);
+});
+
+/* ==================== BOOT ==================== */
+initAuth();
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+})();
+</script>
+</body>
+</html>

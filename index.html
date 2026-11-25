@@ -1955,15 +1955,23 @@ function openMonthEntrySheet(mNum){
   const y = view.year;
   const ym = y + '-' + String(mNum).padStart(2,'0');
   const mName = MONTHS_PL[mNum - 1] + ' ' + y;
-  let body = '<div class="hint" style="margin-bottom:10px">Uzupełnij wpłatę (może być z minusem) oraz realną wartość na koniec miesiąca z banku/maklera — zysk policzy się sam.</div>';
+  const initDeps = {};
+  const initVals = {};
+  const hasMonthData = S.wealthMoves.some(m => m.ym === ym) || (S.valuations[ym] && Object.keys(S.valuations[ym]).length > 0);
+
+  let body = '<div class="hint" style="margin-bottom:10px">Uzupełnij wpłatę (może być z minusem) oraz realną wartość na koniec miesiąca. Aby usunąć wpis, wyczyść pole do pusta i kliknij <b>Zapisz</b> (lub użyj kosza 🗑).</div>';
   body += '<label class="fl">Tryb wyceny końcowej</label>' + chips('f_vmode', [{v:'val', t:'🏦 Stan konta na koniec'},{v:'prof', t:'📈 Sam zysk / odsetki'}], 'val');
   ps.forEach(p => {
     const pm = pillarMonthMetrics(p.id, ym);
-    const curVal = S.valuations[ym] && S.valuations[ym][p.id] != null ? S.valuations[ym][p.id] : '';
+    const hasDep = S.wealthMoves.some(m => m.pillarId === p.id && m.ym === ym);
+    const depVal = hasDep ? String(pm.monthDep) : '';
+    const curVal = S.valuations[ym] && S.valuations[ym][p.id] != null ? String(S.valuations[ym][p.id]) : '';
+    initDeps[p.id] = depVal;
+    initVals[p.id] = curVal;
     body += '<div style="margin-top:12px;padding:12px;border-radius:16px;background:var(--track)">'
       + '<b style="font-size:14px">' + esc(p.emoji) + ' ' + esc(p.name) + '</b>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">'
-      + '<div><span class="hint">Wpłata w ' + MONTHS_SH[mNum-1] + '</span><input class="in" style="background:var(--card);padding:9px" id="md_' + p.id + '" inputmode="decimal" value="' + (pm.monthDep || '') + '" placeholder="0"></div>'
+      + '<div><span class="hint">Wpłata w ' + MONTHS_SH[mNum-1] + '</span><input class="in" style="background:var(--card);padding:9px" id="md_' + p.id + '" inputmode="decimal" value="' + depVal + '" placeholder="brak"></div>'
       + '<div><span class="hint mval-lbl">Stan na koniec</span><input class="in" style="background:var(--card);padding:9px" id="mv_' + p.id + '" inputmode="decimal" value="' + curVal + '" placeholder="opcjonalnie"></div>'
       + '</div></div>';
   });
@@ -1976,6 +1984,13 @@ function openMonthEntrySheet(mNum){
         setTimeout(() => {
           const isP = picked('f_vmode') === 'prof';
           document.querySelectorAll('.mval-lbl').forEach(el => el.textContent = isP ? 'Zysk / odsetki (±)' : 'Stan na koniec');
+          ps.forEach(p => {
+            const inp = $('#mv_' + p.id);
+            if(!inp) return;
+            if(initVals[p.id] === ''){ inp.value = ''; return; }
+            const pm = pillarMonthMetrics(p.id, ym);
+            inp.value = isP ? String(r2(Number(initVals[p.id]) - pm.cumDep)) : initVals[p.id];
+          });
         }, 10);
       });
     },
@@ -1985,12 +2000,20 @@ function openMonthEntrySheet(mNum){
       ps.forEach(p => {
         const depStr = val('md_' + p.id).trim();
         const valStr = val('mv_' + p.id).trim();
-        if(depStr !== ''){
+
+        // 1. Obsługa wpłaty w miesiącu (puste pole = usunięcie wpłat z tego miesiąca)
+        if(depStr === ''){
+          if(initDeps[p.id] !== ''){
+            S.wealthMoves = S.wealthMoves.filter(m => !(m.pillarId === p.id && m.ym === ym));
+          }
+        }else{
           const targetDep = parseNum(depStr);
           if(isFinite(targetDep)){
-            const curMonthMoves = S.wealthMoves.filter(m => m.pillarId === p.id && m.ym === ym);
-            const curSum = r2(sum(curMonthMoves.map(m => m.amount)));
-            const diff = r2(targetDep - curSum);
+            const otherMoves = S.wealthMoves.filter(m => m.pillarId === p.id && m.ym === ym && !m.isManualMonth);
+            const otherSum = r2(sum(otherMoves.map(m => m.amount)));
+            // Usuń poprzednie korekty miesięczne, żeby nie dublować wpisów
+            S.wealthMoves = S.wealthMoves.filter(m => !(m.pillarId === p.id && m.ym === ym && m.isManualMonth));
+            const diff = r2(targetDep - otherSum);
             if(Math.abs(diff) >= 0.01){
               S.wealthMoves.push({
                 id: uid(), date: endDate, ym, pillarId: p.id,
@@ -1999,7 +2022,14 @@ function openMonthEntrySheet(mNum){
             }
           }
         }
-        if(valStr !== ''){
+
+        // 2. Obsługa wyceny końcowej (puste pole = usunięcie zapisanej wartości!)
+        if(valStr === ''){
+          if(S.valuations[ym] && S.valuations[ym][p.id] != null){
+            delete S.valuations[ym][p.id];
+            if(!Object.keys(S.valuations[ym]).length) delete S.valuations[ym];
+          }
+        }else{
           const num = parseNum(valStr);
           if(isFinite(num)){
             if(!S.valuations[ym]) S.valuations[ym] = {};
@@ -2014,7 +2044,13 @@ function openMonthEntrySheet(mNum){
       });
       view.selMonthIdx = mNum - 1;
       saveLocal(); closeSheet(); render(); toast('Zapisano ' + mName);
-    }
+    },
+    del: hasMonthData ? () => {
+      if(!confirm('Usunąć wszystkie wpłaty i wyceny za ' + mName + '?')) return;
+      S.wealthMoves = S.wealthMoves.filter(m => m.ym !== ym);
+      if(S.valuations[ym]) delete S.valuations[ym];
+      saveLocal(); closeSheet(); render(); toast('Wyczyszczono ' + mName);
+    } : null
   });
 }
 
